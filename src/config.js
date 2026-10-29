@@ -5,20 +5,70 @@ export const CONFIG = {
   SAVE_KEY: "terraform_eden_save_v1",
   AUTOSAVE_INTERVAL_MS: 5000,
   TICK_RATE_MS: 50, // 20 updates per second
+  COMET_INTERVAL_SEC: 35, // Lucky Comet spawns every ~35 seconds
+  ANOMALY_INTERVAL_SEC: 45, // Planet Anomaly spawns every ~45 seconds
 
-  // Stages of Terraforming that transform the visual landscape
+  // Storyline & Expedition Logs (AI E.D.E.N. Protocol)
   STAGES: [
-    { threshold: 0, name: "Безжизненная Пустошь", icon: "🌑", description: "Серые безмолвные скалы и холодные космические ветра." },
-    { threshold: 2500, name: "Первое Дыхание", icon: "💨", description: "Появление плотной атмосферы, конденсация влаги, легкий туман." },
-    { threshold: 20000, name: "Пробуждение Воды", icon: "💧", description: "Первые дожди собираются в горные ручьи и лазурные озера." },
-    { threshold: 100000, name: "Зеленый Оазис", icon: "🌱", description: "Склоны покрываются изумрудным мхом, полевыми цветами и кустарниками." },
-    { threshold: 350000, name: "Великий Лес", icon: "🌲", description: "Высокие кроны деревьев, порхающие птицы и чистейший воздух." },
-    { threshold: 1000000, name: "Цветущий Эдем", icon: "✨", description: "Полная гармония биосферы, сияющие авроры и райская природа." }
+    {
+      threshold: 0,
+      name: "Безжизненная Пустошь",
+      icon: "🌑",
+      description: "Серые безмолвные скалы и холодные космические ветра.",
+      logTitle: "ГЛАВА 1: Пробуждение зонда",
+      logDate: "СОЛ 001 // ТЕМП: -72°C",
+      logText: "Бортовой ИИ 'ЭДЕМ' активирован на орбите планеты Кеплер-452. Сенсоры фиксируют абсолютную тишину. Почва мертва, атмосфера разрежена. Начните ручную генерацию тепла и первых искр жизни."
+    },
+    {
+      threshold: 2500,
+      name: "Первое Дыхание",
+      icon: "💨",
+      description: "Появление плотной атмосферы, конденсация влаги, легкий туман.",
+      logTitle: "ГЛАВА 2: Атмосферный барьер",
+      logDate: "СОЛ 048 // КИСЛОРОД: 4.2%",
+      logText: "Термодинамический цикл запущен! Озоновый щит начинает сдерживать космическую радиацию. Над бескрайними каньонами сгущаются первые перистые облака. Планета делает свой первый вдох."
+    },
+    {
+      threshold: 20000,
+      name: "Пробуждение Воды",
+      icon: "💧",
+      description: "Первые дожди собираются в горные ручьи и лазурные озера.",
+      logTitle: "ГЛАВА 3: Великий Дождь",
+      logDate: "СОЛ 112 // ВЛАЖНОСТЬ: 68%",
+      logText: "Водяной пар сконденсировался в миллионы дождевых капель! Впервые за миллиард лет по склонам древних скал зажурчали кристальные ручьи, наполняя лазурные чаши горных озер."
+    },
+    {
+      threshold: 100000,
+      name: "Зеленый Оазис",
+      icon: "🌱",
+      description: "Склоны покрываются изумрудным мхом, полевыми цветами и кустарниками.",
+      logTitle: "ГЛАВА 4: Зеленая Волна",
+      logDate: "СОЛ 230 // БИОМАССА: 12.8 Мт",
+      logText: "Органический синтез превзошел расчеты! Склоны холмов укутаны ковром из бархатного мха и ярких полевых цветов. В ночной тишине замерцали первые огоньки светлячков."
+    },
+    {
+      threshold: 350000,
+      name: "Великий Лес",
+      icon: "🌲",
+      description: "Высокие кроны деревьев, порхающие птицы и чистейший воздух.",
+      logTitle: "ГЛАВА 5: Пульс Жизни",
+      logDate: "СОЛ 410 // БИОСФЕРА СТАБИЛЬНА",
+      logText: "Кроны вековых сосен и дубов поднимаются к облакам. В утреннем небе слышны крики парящих птиц. Планета обрела собственный биогенный пульс и гармоничную смену сезонов."
+    },
+    {
+      threshold: 1000000,
+      name: "Цветущий Эдем",
+      icon: "✨",
+      description: "Полная гармония биосферы, сияющие авроры и райская природа.",
+      logTitle: "ФИНАЛ: Райский Сад",
+      logDate: "СОЛ 777 // ЭДЕМ ДОСТИГНУТ",
+      logText: "МИССИЯ ВЫПОЛНЕНА. Ночное небо озарено изумрудными всполохами Северного Сияния. Некогда мертвая скала стала колыбелью райской жизни. Открыт протокол 'Космическое Вознесение'!"
+    }
   ],
 
   // Upgrade definitions categorized by spheres of nature
   UPGRADES: [
-    // 1. Атмосфера (Клики и активные бусты)
+    // 1. Атмосфера
     {
       id: "solar_rays",
       name: "Солнечные лучи",
@@ -50,7 +100,7 @@ export const CONFIG = {
       baseCost: 800,
       costMult: 1.25,
       type: "crit_chance",
-      power: 0.05 // +5% крит
+      power: 0.05
     },
     {
       id: "photosynthesis",
@@ -64,7 +114,7 @@ export const CONFIG = {
       power: 0.01
     },
 
-    // 2. Гидросфера (Пассивный приток воды и энергии)
+    // 2. Гидросфера
     {
       id: "dew_drops",
       name: "Утренняя роса",
@@ -110,7 +160,7 @@ export const CONFIG = {
       power: 200
     },
 
-    // 3. Биосфера (Флора, фауна и автоматизация)
+    // 3. Биосфера
     {
       id: "moss_blanket",
       name: "Изумрудный мох",
@@ -156,7 +206,7 @@ export const CONFIG = {
       power: 650
     },
 
-    // 4. Гармония (Глобальные множители и магия природы)
+    // 4. Гармония
     {
       id: "solar_bloom",
       name: "Солнечный расцвет",
@@ -178,10 +228,90 @@ export const CONFIG = {
       costMult: 1.6,
       type: "multiplier",
       power: 0.25
+    },
+
+    // 5. Генетические Мутации (Новые глубокие перки!)
+    {
+      id: "mut_chloroplast",
+      name: "Гипер-хлоропласты",
+      category: "mutations",
+      icon: "🧬",
+      desc: "Клик по небу дает удвоенную энергию (+100% в небесной зоне)",
+      baseCost: 300,
+      costMult: 1.8,
+      type: "zone_sky",
+      power: 1.0
+    },
+    {
+      id: "mut_aquifer",
+      name: "Артезианский горизонт",
+      category: "mutations",
+      icon: "💧",
+      desc: "Клик по озеру или реке дает утроенную силу влаги (+200% в зоне воды)",
+      baseCost: 1500,
+      costMult: 2.0,
+      type: "zone_water",
+      power: 2.0
+    },
+    {
+      id: "mut_mycelium",
+      name: "Планетарный мицелий",
+      category: "mutations",
+      icon: "🍄",
+      desc: "Автоматически кликает по миру 1 раз каждые 2 секунды",
+      baseCost: 6000,
+      costMult: 2.2,
+      type: "autoclicker",
+      power: 0.5 // clicks per sec
+    },
+    {
+      id: "mut_magnetosphere",
+      name: "Магнитная ловушка",
+      category: "mutations",
+      icon: "🧲",
+      desc: "Золотые кометы пролетают на 40% медленнее и дают удвоенную награду",
+      baseCost: 25000,
+      costMult: 2.5,
+      type: "comet_boost",
+      power: 1.0
     }
   ],
 
-  // PvP Cataclysms (Sabotage abilities against opponents)
+  // Planetary Random Anomalies (Tactical mini-events with choices!)
+  ANOMALIES: [
+    {
+      id: "geothermal_vent",
+      name: "Геотермальный Гейзер",
+      icon: "🌋",
+      desc: "Из расщелины вырывается мощный столб минерализованного пара!",
+      choices: [
+        { label: "Собрать конденсат (+40 сек пассивного дохода)", action: "income_burst", multiplier: 40 },
+        { label: "Усилить давление (Пассивный доход x2 на 15 сек)", action: "buff_temp", type: "passive", mult: 2.0, time: 15 }
+      ]
+    },
+    {
+      id: "ancient_monolith",
+      name: "Древний Монолит",
+      icon: "🗿",
+      desc: "На склоне скалы обнаружена инопланетная структура из неизвестного сплава.",
+      choices: [
+        { label: "Активировать резонанс (Сила клика x4 на 20 сек)", action: "buff_temp", type: "click", mult: 4.0, time: 20 },
+        { label: "Поглотить энергию (+1,200 💧 мгновенно)", action: "instant_energy", amount: 1200 }
+      ]
+    },
+    {
+      id: "crystal_cluster",
+      name: "Жила Кристаллов Времени",
+      icon: "💎",
+      desc: "Мерцающие кристаллы преломляют пространственно-временной континуум.",
+      choices: [
+        { label: "Временной скачок (Мгновенно промотать 60 сек времени)", action: "time_warp", seconds: 60 },
+        { label: "Зарядить биосферу (+20% к текущей энергии)", action: "percent_energy", percent: 0.2 }
+      ]
+    }
+  ],
+
+  // PvP Cataclysms
   CATACLYSMS: [
     {
       id: "sandstorm",
@@ -213,6 +343,8 @@ export const CONFIG = {
   // Achievements
   ACHIEVEMENTS: [
     { id: "first_click", name: "Первая Искра", desc: "Сделайте свой самый первый клик.", icon: "✨" },
+    { id: "comet_caught", name: "Ловец Звезд", desc: "Поймайте пролетающую Золотую Комету.", icon: "🌠" },
+    { id: "anomaly_explored", name: "Исследователь Неизведанного", desc: "Изучите планетарную аномалию.", icon: "🔍" },
     { id: "clicks_100", name: "Неутомимый Создатель", desc: "Сделайте 100 кликов по миру.", icon: "👆" },
     { id: "energy_1k", name: "Пробуждение Почвы", desc: "Накопите 1,000 Энергии Жизни.", icon: "🌱" },
     { id: "energy_50k", name: "Цветущий Край", desc: "Накопите 50,000 Энергии Жизни.", icon: "🌸" },

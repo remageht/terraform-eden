@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Terraform: Genesis of Eden — Инкрементальная игра</title>
-  <meta name="description" content="Инкрементальная игра терраформирования живого пейзажа с поддержкой одиночного и мультиплеерного режимов (Co-op и PvP) прямо в браузере.">
+  <meta name="description" content="Инкрементальная игра терраформирования живого пейзажа с сюжетом экспедиции, мутациями, аномалиями и мультиплеером (Co-op и PvP).">
   
   <!-- Modern Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   
   <!-- PeerJS for zero-server WebRTC Peer-to-Peer multiplayer -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -48,8 +48,11 @@
         </div>
       </div>
 
-      <!-- Right Actions: Sound, Multiplayer, Prestige -->
+      <!-- Right Actions: Logbook, Sound, Multiplayer, Prestige -->
       <div class="header-right">
+        <button id="open-logbook-btn" class="btn btn-glass" title="Бортовой журнал экспедиции">
+          <span>📜 Журнал</span>
+        </button>
         <button id="open-mp-modal-btn" class="btn btn-glass" title="Мультиплеер (Co-op и PvP)">
           <span>👥 Мультиплеер</span>
         </button>
@@ -67,6 +70,9 @@
       
       <!-- Central Energy Display and Instructions -->
       <div id="center-display">
+        <!-- Active Buffs Pill Bar -->
+        <div id="active-buffs-bar" class="buffs-bar hidden"></div>
+
         <div class="energy-card">
           <div class="energy-primary">
             <span class="resource-symbol">💧</span>
@@ -76,7 +82,7 @@
             <span id="passive-rate" class="rate-badge passive">+0 /сек</span>
             <span id="click-rate" class="rate-badge click">+1 /клик</span>
           </div>
-          <div class="click-hint">Кликайте по пейзажу, чтобы пробуждать жизнь!</div>
+          <div class="click-hint">Кликайте по небу, воде или холмам. Ловите кометы и аномалии! ✨</div>
         </div>
 
         <!-- Multiplayer Live HUD (Co-op / PvP) -->
@@ -120,6 +126,7 @@
           <button class="category-tab" data-category="atmosphere">☀️ Небо</button>
           <button class="category-tab" data-category="hydrosphere">💧 Вода</button>
           <button class="category-tab" data-category="biosphere">🌲 Флора</button>
+          <button class="category-tab" data-category="mutations">🧬 Мутации</button>
           <button class="category-tab" data-category="harmony">🔮 Магия</button>
         </nav>
 
@@ -129,6 +136,45 @@
 
     </main>
 
+  </div>
+
+  <!-- Story Popup Dialog (For new stage unlock) -->
+  <div id="story-popup" class="modal-backdrop hidden">
+    <div class="story-modal-card">
+      <div class="story-badge">📡 СИГНАЛ БОРТОВОГО ИИ «ЭДЕМ»</div>
+      <h3 id="story-popup-title" class="story-title">ГЛАВА 1</h3>
+      <div id="story-popup-date" class="story-date">СОЛ 001 // ТЕМПЕРАТУРА: -72°C</div>
+      <p id="story-popup-text" class="story-text">Текст записи...</p>
+      <button id="close-story-popup-btn" class="btn btn-primary story-btn">Продолжить терраформирование</button>
+    </div>
+  </div>
+
+  <!-- Story Logbook Modal -->
+  <div id="logbook-modal" class="modal-backdrop hidden">
+    <div class="modal-card logbook-card">
+      <div class="modal-header">
+        <h3 class="modal-title">📜 Бортовой Журнал Экспедиции «ЭДЕМ»</h3>
+        <button id="close-logbook-btn" class="modal-close">&times;</button>
+      </div>
+      <div id="logbook-entries" class="logbook-scroll"></div>
+    </div>
+  </div>
+
+  <!-- Anomaly Event Modal -->
+  <div id="anomaly-modal" class="modal-backdrop hidden">
+    <div class="modal-card anomaly-card">
+      <div class="anomaly-header">
+        <span id="anomaly-icon" class="anomaly-big-icon">🌋</span>
+        <div class="anomaly-header-text">
+          <span class="anomaly-badge">ОБНАРУЖЕНА АНОМАЛИЯ</span>
+          <h3 id="anomaly-title" class="anomaly-title">Геотермальный Гейзер</h3>
+        </div>
+        <button id="close-anomaly-btn" class="modal-close">&times;</button>
+      </div>
+      <p id="anomaly-desc" class="anomaly-desc">Из расщелины вырывается мощный столб минерализованного пара!</p>
+      <div class="anomaly-choice-prompt">Выберите тактическое действие:</div>
+      <div id="anomaly-choices" class="anomaly-choices-grid"></div>
+    </div>
   </div>
 
   <!-- Multiplayer Modal -->
@@ -174,7 +220,7 @@
         <div class="join-room-section">
           <h4>Присоединиться к другу:</h4>
           <div class="join-input-group">
-            <input type="text" id="room-code-input" placeholder="Введите 5-значный код комнаты (например: eden4)" maxlength="16">
+            <input type="text" id="room-code-input" placeholder="Введите 5-значный код комнаты" maxlength="16">
             <button id="btn-join-room" class="btn btn-primary">Войти</button>
           </div>
         </div>
