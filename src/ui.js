@@ -198,6 +198,11 @@ export class UIManager {
             this.sounds.playSupernova();
             if (this.particles) this.particles.triggerSupernova();
             this.showToast(`🌌 БОЛЬШОЙ ВЗРЫВ! Получено +${earned} ⭐ Звездной Пыли!`, "success");
+            const achs = this.state.checkAchievements();
+            achs.forEach(ach => {
+              this.sounds.playMilestone();
+              this.showToast(`🏆 Достижение: ${ach.icon} ${ach.name}!`, "success");
+            });
             this.buildUpgradesList();
             this.render();
           }
@@ -508,6 +513,11 @@ export class UIManager {
         const toastResult = this.state.applyAnomalyChoice(choice);
         this.sounds.playMilestone();
         this.showToast(toastResult, "success");
+        const achs = this.state.checkAchievements();
+        achs.forEach(ach => {
+          this.sounds.playMilestone();
+          this.showToast(`🏆 Достижение: ${ach.icon} ${ach.name}!`, "success");
+        });
         this.anomalyModal.classList.add("hidden");
         this.render();
       });
@@ -522,7 +532,13 @@ export class UIManager {
     if (!this.logbookEntriesContainer) return;
     this.logbookEntriesContainer.innerHTML = "";
 
-    CONFIG.EVOLUTION_STAGES.forEach((stage, idx) => {
+    // Section 1: Story Epochs
+    const epochsTitle = document.createElement("div");
+    epochsTitle.className = "logbook-section-title";
+    epochsTitle.innerHTML = `<span>📜 Эпохи Эволюции Биосферы</span><span class="badge-mini">${this.state.unlockedEvolutionStages.length}/${CONFIG.EVOLUTION_STAGES.length}</span>`;
+    this.logbookEntriesContainer.appendChild(epochsTitle);
+
+    CONFIG.EVOLUTION_STAGES.forEach((stage) => {
       const isUnlocked = this.state.unlockedEvolutionStages.includes(stage.id);
       const entry = document.createElement("div");
       entry.className = `logbook-entry ${isUnlocked ? "unlocked" : "locked-entry"}`;
@@ -548,6 +564,32 @@ export class UIManager {
 
       this.logbookEntriesContainer.appendChild(entry);
     });
+
+    // Section 2: Achievements Hall of Fame
+    const unlockedAchsCount = Object.keys(this.state.achievements).filter(k => this.state.achievements[k]).length;
+    const achSectionTitle = document.createElement("div");
+    achSectionTitle.className = "logbook-section-title mt-4";
+    achSectionTitle.innerHTML = `<span>🏆 Зал Славы (Достижения)</span><span class="badge-mini">${unlockedAchsCount}/${CONFIG.ACHIEVEMENTS.length}</span>`;
+    this.logbookEntriesContainer.appendChild(achSectionTitle);
+
+    const achGrid = document.createElement("div");
+    achGrid.className = "achievements-grid";
+
+    CONFIG.ACHIEVEMENTS.forEach(ach => {
+      const isDone = !!this.state.achievements[ach.id];
+      const card = document.createElement("div");
+      card.className = `ach-card ${isDone ? "unlocked" : "locked"}`;
+      card.innerHTML = `
+        <div class="ach-icon">${isDone ? ach.icon : "🔒"}</div>
+        <div class="ach-info">
+          <div class="ach-name">${isDone ? ach.name : "Секретное достижение"}</div>
+          <div class="ach-desc">${isDone ? ach.desc : "Разблокируйте в процессе эволюции"}</div>
+        </div>
+        <div class="ach-status">${isDone ? "✓ Выполнено" : "—"}</div>
+      `;
+      achGrid.appendChild(card);
+    });
+    this.logbookEntriesContainer.appendChild(achGrid);
   }
 
   updateActiveBuffs() {

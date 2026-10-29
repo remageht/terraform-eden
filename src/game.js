@@ -116,10 +116,15 @@ class Game {
     };
 
     this.network.onConnected = ({ mode }) => {
+      this.state.multiplayerGamesPlayed++;
       this.ui.showToast(`🎮 Подключено! Режим: ${mode === "coop" ? "Кооператив" : "PvP Дуэль"}`, "success");
       this.ui.mpModal.classList.add("hidden");
       this.ui.render();
-      this.state.checkAchievements();
+      const achs = this.state.checkAchievements();
+      for (const a of achs) {
+        this.sounds.playAchievement();
+        this.ui.showToast(`🏆 Достижение: ✨ ${a.name}!`, "achievement");
+      }
     };
 
     this.network.onDisconnected = () => {
@@ -357,6 +362,12 @@ class Game {
         this.ui.showEvolutionModal(newEvolutionStage);
       }
 
+      const tickAchs = this.state.checkAchievements();
+      tickAchs.forEach((ach) => {
+        this.sounds.playMilestone();
+        this.ui.showToast(`🏆 Достижение: ${ach.icon} ${ach.name}!`, "success");
+      });
+
       this.tickTimer = 0;
       this.ui.render();
     }
@@ -369,6 +380,11 @@ class Game {
           this.sounds.playMilestone();
           this.particles.addFloater(window.innerWidth * 0.5, window.innerHeight * 0.35, bonus.text, "#fde047", true);
           this.ui.showToast(bonus.text, "success");
+          const cometAchs = this.state.checkAchievements();
+          cometAchs.forEach((ach) => {
+            this.sounds.playMilestone();
+            this.ui.showToast(`🏆 Достижение: ${ach.icon} ${ach.name}!`, "success");
+          });
           this.ui.render();
         });
       } else {

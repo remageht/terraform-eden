@@ -588,6 +588,18 @@ export class Planet3DRenderer {
       );
     }
 
+    // Dynamic Day/Night sunlight orbit creating moving planetary terminators
+    if (this.sunLight) {
+      if (typeof this.sunAngle === "undefined") this.sunAngle = 0.5;
+      this.sunAngle += 0.001;
+      const sunDist = 7.5;
+      this.sunLight.position.set(
+        Math.cos(this.sunAngle) * sunDist,
+        3.0 + Math.sin(this.sunAngle * 0.5) * 1.5,
+        Math.sin(this.sunAngle) * sunDist
+      );
+    }
+
     // DNA helix spin
     if (this.dnaHelixGroup && this.dnaHelixGroup.visible) {
       this.dnaHelixGroup.rotation.y += 0.02;

@@ -10,6 +10,9 @@ export class GameState {
     this.energy = 0;
     this.totalEnergyEarned = 0;
     this.clicks = 0;
+    this.cometsCaught = 0;
+    this.anomaliesExplored = 0;
+    this.multiplayerGamesPlayed = 0;
     this.prestigeCount = 0;
 
     // Prestige / Reality Engine meta-progression (NEVER wiped by prestige!)
@@ -157,10 +160,15 @@ export class GameState {
       this.currentEvolutionIndex = evoIdx;
       evolutionChanged = true;
       newEvolutionStage = CONFIG.EVOLUTION_STAGES[evoIdx];
-      if (!this.unlockedEvolutionStages.includes(newEvolutionStage.id)) {
-        this.unlockedEvolutionStages.push(newEvolutionStage.id);
+    }
+
+    for (let i = 0; i <= evoIdx; i++) {
+      const stageId = CONFIG.EVOLUTION_STAGES[i].id;
+      if (!this.unlockedEvolutionStages.includes(stageId)) {
+        this.unlockedEvolutionStages.push(stageId);
       }
     }
+
 
     return { evolutionChanged, newEvolutionStage };
   }
@@ -276,7 +284,7 @@ export class GameState {
   }
 
   applyAnomalyChoice(choice) {
-    this.achievements["anomaly_explored"] = true;
+    this.anomaliesExplored++;
     let toastMsg = "";
 
     if (choice.action === "income_burst") {
@@ -315,7 +323,7 @@ export class GameState {
   }
 
   claimCometBonus() {
-    this.achievements["comet_caught"] = true;
+    this.cometsCaught++;
     const rolls = ["biomass", "sunburst", "cosmic_gift"];
     const bonusType = rolls[Math.floor(Math.random() * rolls.length)];
     const harvesterLvl = this.prestigeTalents["comet_harvester"] || 0;
@@ -373,7 +381,6 @@ export class GameState {
     this.prestigeCount++;
     this.stardust += earnedStardust;
     this.totalStardustEarned += earnedStardust;
-    this.achievements["first_prestige"] = true;
 
     // Reset current run
     this.totalEnergyEarned = 0;
@@ -412,9 +419,10 @@ export class GameState {
 
       let unlocked = false;
       if (ach.id === "first_click" && this.clicks >= 1) unlocked = true;
-      if (ach.id === "comet_caught" && this.achievements["comet_caught"]) unlocked = true;
-      if (ach.id === "anomaly_explored" && this.achievements["anomaly_explored"]) unlocked = true;
-      if (ach.id === "first_prestige" && this.achievements["first_prestige"]) unlocked = true;
+      if (ach.id === "comet_caught" && this.cometsCaught >= 1) unlocked = true;
+      if (ach.id === "anomaly_explored" && this.anomaliesExplored >= 1) unlocked = true;
+      if (ach.id === "first_prestige" && this.prestigeCount >= 1) unlocked = true;
+      if (ach.id === "multiplayer_played" && this.multiplayerGamesPlayed >= 1) unlocked = true;
       if (ach.id === "evolution_fish" && this.unlockedEvolutionStages.includes("primitive_fish")) unlocked = true;
       if (ach.id === "evolution_human" && this.unlockedEvolutionStages.includes("human_dawn")) unlocked = true;
       if (ach.id === "evolution_singularity" && this.unlockedEvolutionStages.includes("singularity_age")) unlocked = true;
@@ -433,6 +441,9 @@ export class GameState {
         energy: this.energy,
         totalEnergyEarned: this.totalEnergyEarned,
         clicks: this.clicks,
+        cometsCaught: this.cometsCaught,
+        anomaliesExplored: this.anomaliesExplored,
+        multiplayerGamesPlayed: this.multiplayerGamesPlayed,
         prestigeCount: this.prestigeCount,
         stardust: this.stardust,
         totalStardustEarned: this.totalStardustEarned,
@@ -458,6 +469,9 @@ export class GameState {
       this.energy = data.energy || 0;
       this.totalEnergyEarned = data.totalEnergyEarned || 0;
       this.clicks = data.clicks || 0;
+      this.cometsCaught = data.cometsCaught || 0;
+      this.anomaliesExplored = data.anomaliesExplored || 0;
+      this.multiplayerGamesPlayed = data.multiplayerGamesPlayed || 0;
       this.prestigeCount = data.prestigeCount || 0;
       this.stardust = data.stardust || 0;
       this.totalStardustEarned = data.totalStardustEarned || 0;
