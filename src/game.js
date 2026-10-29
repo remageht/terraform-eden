@@ -12,8 +12,11 @@ class Game {
   constructor() {
     this.canvas2D = document.getElementById("game-canvas");
     this.canvas3D = document.getElementById("webgl-canvas");
+    this.fxCanvas = document.getElementById("fx-canvas");
+    this.fxCtx = this.fxCanvas ? this.fxCanvas.getContext("2d") : null;
     this.canvas = this.canvas2D; // legacy ref
     this.viewMode = "3d"; // Default to 3D interactive planet!
+    this.currentArchetype = "gaia"; // "gaia" | "crystal" | "cyber"
 
     this.state = new GameState();
     this.particles = new ParticleSystem();
@@ -33,11 +36,22 @@ class Game {
     this.init();
   }
 
+  resizeFxCanvas() {
+    if (!this.fxCanvas || !this.fxCtx) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.fxCanvas.width = window.innerWidth * dpr;
+    this.fxCanvas.height = window.innerHeight * dpr;
+    this.fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
   init() {
+    this.resizeFxCanvas();
+    window.addEventListener("resize", () => this.resizeFxCanvas());
+
     const { loaded, offlineGain } = this.state.load();
     if (loaded && offlineGain > 0) {
       setTimeout(() => {
-        this.ui.showToast(`🌿 Добро пожаловать назад! Оффлайн-доход: +${offlineGain} 💧`, "info");
+        this.ui.showToast(`🧬 Добро пожаловать назад! Накопленная эссенция: +${offlineGain} 🧬`, "info");
       }, 800);
     }
 
@@ -70,6 +84,14 @@ class Game {
       });
     }
 
+    // Archetype toggle button (Gaia / Crystal / Cyber)
+    this.archetypeBtn = document.getElementById("archetype-toggle-btn");
+    if (this.archetypeBtn) {
+      this.archetypeBtn.addEventListener("click", () => {
+        this.cycleArchetype();
+      });
+    }
+
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" && e.target.tagName !== "INPUT") {
         e.preventDefault();
@@ -83,6 +105,27 @@ class Game {
     this.ui.render();
 
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  cycleArchetype() {
+    const archetypes = [
+      { id: "gaia", name: "Био-Эдем", icon: "🌿" },
+      { id: "crystal", name: "Кристал-Нексус", icon: "💎" },
+      { id: "cyber", name: "Кибер-Сингулярность", icon: "⚡" }
+    ];
+    const nextIdx = (archetypes.findIndex(a => a.id === this.currentArchetype) + 1) % archetypes.length;
+    const next = archetypes[nextIdx];
+    this.currentArchetype = next.id;
+    if (this.renderer3D && this.renderer3D.isSupported) {
+      this.renderer3D.setArchetype(next.id);
+    }
+    if (this.archetypeBtn) {
+      const icon = this.archetypeBtn.querySelector(".btn-icon");
+      const label = this.archetypeBtn.querySelector(".btn-label");
+      if (icon) icon.textContent = next.icon;
+      if (label) label.textContent = next.name;
+    }
+    this.ui.showToast(`Архетип Мира: ${next.icon} ${next.name}!`, "info");
   }
 
   toggleViewMode() {
@@ -109,6 +152,7 @@ class Game {
       this.ui.showToast("Режим: Живой 2D Пейзаж 🌄", "info");
     }
   }
+
 
   setupNetworkHandlers() {
     this.network.onStatusChange = (status) => {
@@ -185,7 +229,7 @@ class Game {
           () => {
             const lost = this.state.applyCataclysm("meteor_hit");
             this.sounds.playWarning();
-            this.ui.showToast(`💥 Метеорит упал! Вы потеряли ${lost} 💧!`, "warning");
+            this.ui.showToast(`💥 Метеорит упал! Вы потеряли ${lost} 🧬!`, "warning");
             this.ui.render();
           },
           () => {
@@ -283,31 +327,43 @@ class Game {
     } else {
       const isBuffed = this.state.effects.sunburstTimer > 0;
       let theme = "spark";
-      let prefix = "";
+      let prefix = "🧬 ";
+      let color = "#34d399";
+
       if (zone === "sky") {
         theme = "sun";
-        prefix = "☀️ ";
+        prefix = "⚡ ";
+        color = "#facc15";
       } else if (zone === "water") {
         theme = "water";
-        prefix = "💧 ";
+        prefix = "🔮 ";
+        color = "#38bdf8";
+      } else if (zone === "core") {
+        theme = "crit";
+        prefix = "🌋 ";
+        color = "#fb923c";
       } else {
         theme = this.state.habitability > 0.35 ? "leaf" : "spark";
-        prefix = "🌱 ";
+        prefix = "🧬 ";
+        color = this.currentArchetype === "crystal" ? "#c084fc" : (this.currentArchetype === "cyber" ? "#22d3ee" : "#34d399");
       }
 
-      if (result.isCrit) theme = "crit";
+      if (result.isCrit) {
+        theme = "crit";
+        color = "#fbbf24";
+      }
 
-      this.particles.burst(x, y, result.isCrit ? 22 : 10, theme);
+      this.particles.burst(x, y, result.isCrit ? 24 : 12, theme);
 
       let floaterText = `${prefix}+${result.gained}`;
-      if (result.isCrit) floaterText = `КРИТ! +${result.gained}`;
+      if (result.isCrit) floaterText = `КРИТ! +${result.gained} ⚡`;
       else if (result.biomeMultiplier > 1.0) floaterText = `${prefix}+${result.gained} (x${result.biomeMultiplier})`;
 
       this.particles.addFloater(
         x,
         y,
         floaterText,
-        result.isCrit ? "#fbbf24" : (isBuffed ? "#fef08a" : (zone === "water" ? "#38bdf8" : (zone === "sky" ? "#fde047" : "#6ee7b7"))),
+        color,
         result.isCrit || isBuffed
       );
 
@@ -320,6 +376,9 @@ class Game {
 
     // Evolution era milestone unlock
     if (result.evolutionChanged && result.newEvolutionStage) {
+      if (this.renderer3D && this.renderer3D.isSupported) {
+        this.renderer3D.triggerEvolutionShockwave();
+      }
       this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
       this.ui.showEvolutionModal(result.newEvolutionStage);
     }
@@ -351,12 +410,13 @@ class Game {
       const { evolutionChanged, newEvolutionStage, autoclickGained } = this.state.tick(this.tickTimer);
       
       if (autoclickGained > 0) {
-        this.particles.burst(this.canvas.width * 0.5, this.canvas.height * 0.75, 4, "leaf");
+        this.particles.burst(window.innerWidth * 0.5, window.innerHeight * 0.75, 4, "spark");
       }
 
       if (evolutionChanged && newEvolutionStage) {
         if (this.renderer3D && this.renderer3D.isSupported) {
           this.renderer3D.setEvolutionStage(this.state.currentEvolutionIndex);
+          this.renderer3D.triggerEvolutionShockwave();
         }
         this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
         this.ui.showEvolutionModal(newEvolutionStage);
@@ -433,7 +493,12 @@ class Game {
 
       this.landscape.update(dt * 60);
       this.landscape.draw();
-      this.particles.draw(this.landscape.ctx);
+    }
+
+    // Always clear and draw particles & click floaters on #fx-canvas in both 3D & 2D modes!
+    if (this.fxCtx) {
+      this.fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      this.particles.draw(this.fxCtx);
     }
 
     this.particles.update(dt * 60);

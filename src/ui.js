@@ -38,6 +38,12 @@ export class UIManager {
     this.habitabilityPercent = document.getElementById("habitability-percent");
     this.stardustHeaderDisplay = document.getElementById("stardust-counter");
 
+    // Progression Tracker (Tier & Milestone Pace)
+    this.tierBadge = document.getElementById("tier-badge");
+    this.evolutionPaceDisplay = document.getElementById("evolution-pace");
+    this.milestoneEtaFill = document.getElementById("milestone-eta-fill");
+    this.archetypeToggleBtn = document.getElementById("archetype-toggle-btn");
+
     // Buffs banner
     this.activeBuffsContainer = document.getElementById("active-buffs-bar");
 
@@ -381,7 +387,7 @@ export class UIManager {
             </div>
             <div class="upgrade-desc">${u.desc}</div>
             <div class="upgrade-cost-row">
-              <span class="upgrade-cost js-cost">0 💧</span>
+              <span class="upgrade-cost js-cost">0 🧬</span>
             </div>
           </div>
         </div>
@@ -399,7 +405,7 @@ export class UIManager {
           void card.offsetWidth;
           card.classList.add("shake");
           this.sounds.playWaterDrop();
-          this.showToast(`Не хватает ${formatNumber(cost - this.state.energy)} 💧 для "${u.name}"!`, "warning");
+          this.showToast(`Не хватает ${formatNumber(cost - this.state.energy)} 🧬 для "${u.name}"!`, "warning");
           return;
         }
 
@@ -435,7 +441,7 @@ export class UIManager {
       const canAfford = this.state.energy >= cost;
 
       levelEl.textContent = `LVL ${level}`;
-      costEl.textContent = `${formatNumber(cost)} 💧`;
+      costEl.textContent = `${formatNumber(cost)} 🧬`;
 
       const pct = Math.min(100, Math.floor((this.state.energy / Math.max(1, cost)) * 100));
       if (progressEl) {
@@ -463,7 +469,7 @@ export class UIManager {
       btn.innerHTML = `
         <span class="cat-icon">${cat.icon}</span>
         <span class="cat-name">${cat.name}</span>
-        <span class="cat-cost">${formatNumber(cat.cost)} 💧</span>
+        <span class="cat-cost">${formatNumber(cat.cost)} 🧬</span>
       `;
       btn.title = cat.desc;
 
@@ -475,7 +481,7 @@ export class UIManager {
           this.showToast(`Вы запустили атаку: ${cat.name}! ⚔️`, "warning");
           this.render();
         } else {
-          this.showToast(`Не хватает ${formatNumber(cat.cost - this.state.energy)} 💧 для атаки!`, "warning");
+          this.showToast(`Не хватает ${formatNumber(cat.cost - this.state.energy)} 🧬 для атаки!`, "warning");
         }
       });
 
@@ -556,7 +562,7 @@ export class UIManager {
         entry.innerHTML = `
           <div class="entry-header">
             <span class="entry-icon">🔒</span>
-            <span class="entry-title">Эпоха еще не открыта [Порог: ${formatNumber(stage.threshold)} 💧]</span>
+            <span class="entry-title">Эпоха еще не открыта [Порог: ${formatNumber(stage.threshold)} 🧬]</span>
           </div>
           <div class="entry-body locked-text">Генетический код заблокирован. Развивайте биосферу.</div>
         `;
@@ -629,9 +635,50 @@ export class UIManager {
     this.clickDisplay.textContent = `+${formatNumber(this.state.clickPower)} /клик`;
 
     // Evolution stage in header
-    const currentEvo = CONFIG.EVOLUTION_STAGES[this.state.currentEvolutionIndex];
+    const evoIdx = this.state.currentEvolutionIndex;
+    const stages = CONFIG.EVOLUTION_STAGES;
+    const currentEvo = stages[evoIdx] || stages[0];
+    const nextEvo = stages[evoIdx + 1];
+
     if (this.stageName) this.stageName.textContent = `${currentEvo.name}`;
     if (this.stageDesc) this.stageDesc.textContent = currentEvo.description;
+
+    // Progression Tracker (Tier & Milestone ETA)
+    if (this.tierBadge) {
+      const romanTiers = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+      const tierNumeral = romanTiers[evoIdx] || `${evoIdx + 1}`;
+      this.tierBadge.textContent = `УРОВЕНЬ ${tierNumeral} • ${currentEvo.name.toUpperCase()}`;
+    }
+
+    if (this.milestoneEtaFill) {
+      if (nextEvo) {
+        const prevThreshold = currentEvo.threshold || 0;
+        const nextThreshold = nextEvo.threshold;
+        const span = Math.max(1, nextThreshold - prevThreshold);
+        const progress = Math.min(100, Math.max(0, ((this.state.energy - prevThreshold) / span) * 100));
+        this.milestoneEtaFill.style.width = `${progress.toFixed(1)}%`;
+      } else {
+        this.milestoneEtaFill.style.width = "100%";
+      }
+    }
+
+    if (this.evolutionPaceDisplay) {
+      if (nextEvo) {
+        const prevThreshold = currentEvo.threshold || 0;
+        const span = Math.max(1, nextEvo.threshold - prevThreshold);
+        if (this.state.passivePerSec > 0) {
+          const pacePerMin = Math.min(999.9, (this.state.passivePerSec * 60 / span) * 100);
+          const remainingEnergy = Math.max(0, nextEvo.threshold - this.state.energy);
+          const etaSec = Math.ceil(remainingEnergy / this.state.passivePerSec);
+          const etaText = etaSec < 60 ? `${etaSec}с` : `${Math.floor(etaSec / 60)}м ${etaSec % 60}с`;
+          this.evolutionPaceDisplay.textContent = `⚡ +${pacePerMin.toFixed(1)}%/мин (~${etaText})`;
+        } else {
+          this.evolutionPaceDisplay.textContent = `⚡ Кликайте для ускорения`;
+        }
+      } else {
+        this.evolutionPaceDisplay.textContent = `⚡ МАКСИМАЛЬНАЯ ЭВОЛЮЦИЯ`;
+      }
+    }
 
     const percent = Math.floor(this.state.habitability * 100);
     if (this.habitabilityBar) this.habitabilityBar.style.width = `${percent}%`;

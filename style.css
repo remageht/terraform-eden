@@ -105,6 +105,16 @@ html, body {
   touch-action: none;
 }
 
+/* Fullscreen FX Canvas for Click Floaters & Particle Bursts */
+#fx-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2;
+  pointer-events: none;
+}
+
 /* UI Shell Overlay */
 #game-container {
   position: relative;
@@ -499,6 +509,63 @@ html, body {
 .click-hint.hidden-hint {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Visible Progression Tracker & Tier Widget */
+.progression-tracker {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.progression-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tier-badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--cosmic-sky);
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  text-transform: uppercase;
+}
+
+.pace-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--bio-mint);
+  white-space: nowrap;
+}
+
+.milestone-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.milestone-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cosmic-sky), var(--stardust-gold));
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 6px rgba(253, 224, 71, 0.5);
+  transition: width 0.3s ease;
 }
 
 /* Multiplayer Live HUD (Co-op / PvP) */

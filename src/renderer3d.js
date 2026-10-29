@@ -44,6 +44,11 @@ export class Planet3DRenderer {
     this.dnaHelixGroup = null;
     this.activeCometMesh = null;
     this.surfaceRipples = [];
+    this.archetype = "gaia";
+    this.dysonRingGroup = null;
+    this.dysonRingMesh = null;
+    this.satellitesGroup = null;
+    this.satelliteDrones = [];
 
     // Texture canvases
     this.planetCanvas = document.createElement("canvas");
@@ -98,10 +103,13 @@ export class Planet3DRenderer {
     this.setupClouds();
     this.setupMoon();
     this.setupDNAHelix();
+    this.setupDysonRing();
+    this.setupSatellites();
     this.bindEvents();
 
     this.updateTextures();
   }
+
 
   setupLighting() {
     // Ambient celestial light
@@ -247,7 +255,106 @@ export class Planet3DRenderer {
     this.scene.add(this.dnaHelixGroup);
   }
 
-  // Procedurally paints the planet surface according to habitability and epoch
+  setupDysonRing() {
+    this.dysonRingGroup = new THREE.Group();
+    
+    // Glowing orbital megastructure ring
+    const ringGeo = new THREE.TorusGeometry(2.15, 0.024, 16, 96);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.0
+    });
+    this.dysonRingMesh = new THREE.Mesh(ringGeo, ringMat);
+    this.dysonRingMesh.rotation.x = Math.PI * 0.42;
+    this.dysonRingGroup.add(this.dysonRingMesh);
+
+    // Solar collector nodes on ring
+    const nodeGeo = new THREE.BoxGeometry(0.06, 0.03, 0.12);
+    const nodeMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const node = new THREE.Mesh(nodeGeo, nodeMat);
+      node.position.set(Math.cos(angle) * 2.15, Math.sin(angle) * 2.15, 0);
+      node.rotation.z = angle;
+      this.dysonRingMesh.add(node);
+    }
+
+    this.scene.add(this.dysonRingGroup);
+  }
+
+  setupSatellites() {
+    this.satellitesGroup = new THREE.Group();
+    const satGeo = new THREE.BoxGeometry(0.045, 0.022, 0.045);
+    const wingGeo = new THREE.BoxGeometry(0.14, 0.006, 0.035);
+    const satMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.2 });
+    const wingMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+    this.satelliteDrones = [];
+    for (let i = 0; i < 6; i++) {
+      const satGroup = new THREE.Group();
+      const body = new THREE.Mesh(satGeo, satMat);
+      const wings = new THREE.Mesh(wingGeo, wingMat);
+      satGroup.add(body);
+      satGroup.add(wings);
+
+      const orbitRadius = 1.9 + (i % 3) * 0.14;
+      const speed = 0.012 + (i * 0.0035);
+      const inclination = (i * 0.5) - 0.8;
+
+      this.satellitesGroup.add(satGroup);
+      this.satelliteDrones.push({
+        group: satGroup,
+        radius: orbitRadius,
+        speed,
+        angle: (i / 6) * Math.PI * 2,
+        inclination
+      });
+    }
+
+    this.scene.add(this.satellitesGroup);
+  }
+
+  triggerEvolutionShockwave() {
+    if (!this.scene) return;
+    const ringGeo = new THREE.RingGeometry(1.6, 1.75, 48);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95
+    });
+    const shockwave = new THREE.Mesh(ringGeo, ringMat);
+    shockwave.rotation.x = Math.PI / 2;
+    this.scene.add(shockwave);
+
+    const startTime = performance.now();
+    const animateShockwave = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const scale = 1.0 + elapsed * 3.8;
+      shockwave.scale.set(scale, scale, scale);
+      shockwave.material.opacity = Math.max(0, 0.95 - elapsed * 1.0);
+      if (shockwave.material.opacity > 0) {
+        requestAnimationFrame(animateShockwave);
+      } else {
+        this.scene.remove(shockwave);
+      }
+    };
+    animateShockwave();
+  }
+
+  setArchetype(archetype) {
+    if (!["gaia", "crystal", "cyber"].includes(archetype)) return;
+    this.archetype = archetype;
+    if (this.dysonRingMesh) {
+      if (archetype === "crystal") this.dysonRingMesh.material.color.setHex(0xc084fc);
+      else if (archetype === "cyber") this.dysonRingMesh.material.color.setHex(0x06b6d4);
+      else this.dysonRingMesh.material.color.setHex(0x38bdf8);
+    }
+    this.updateTextures();
+  }
+
+  // Procedurally paints the planet surface according to habitability, archetype, and epoch
   updateTextures() {
     if (!this.planetCtx) return;
 
@@ -256,14 +363,26 @@ export class Planet3DRenderer {
     const h = this.planetCanvas.height;
     const hRatio = Math.max(0, Math.min(1, this.habitability));
 
-    // Base primordial basalt rock
-    ctx.fillStyle = "#111622";
+    // Base primordial core rock by archetype
+    if (this.archetype === "crystal") {
+      ctx.fillStyle = "#0c0a1a";
+    } else if (this.archetype === "cyber") {
+      ctx.fillStyle = "#050811";
+    } else {
+      ctx.fillStyle = "#111622";
+    }
     ctx.fillRect(0, 0, w, h);
 
-    // 1. Primitive lava / heat cracks during 0% habitability
-    if (hRatio < 0.25) {
-      const lavaIntensity = 1.0 - (hRatio / 0.25);
-      ctx.strokeStyle = `rgba(239, 68, 68, ${lavaIntensity * 0.7})`;
+    // 1. Primitive energy fissures / plasma cracks
+    if (hRatio < 0.3) {
+      const lavaIntensity = 1.0 - (hRatio / 0.3);
+      if (this.archetype === "crystal") {
+        ctx.strokeStyle = `rgba(168, 85, 247, ${lavaIntensity * 0.75})`;
+      } else if (this.archetype === "cyber") {
+        ctx.strokeStyle = `rgba(6, 182, 212, ${lavaIntensity * 0.8})`;
+      } else {
+        ctx.strokeStyle = `rgba(239, 68, 68, ${lavaIntensity * 0.7})`;
+      }
       ctx.lineWidth = 3;
       for (let i = 0; i < 18; i++) {
         ctx.beginPath();
@@ -287,22 +406,50 @@ export class Planet3DRenderer {
       const rad = 70 + (c % 4) * 35;
 
       const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, rad);
-      if (hRatio > 0.45) {
-        // Lush green continent
-        grad.addColorStop(0, "#10b981");
-        grad.addColorStop(0.6, "#059669");
-        grad.addColorStop(0.85, "#047857");
-        grad.addColorStop(1, "transparent");
-      } else if (hRatio > 0.15) {
-        // Moss & early dry land
-        grad.addColorStop(0, "#4d7c0f");
-        grad.addColorStop(0.6, "#365314");
-        grad.addColorStop(1, "transparent");
+      if (this.archetype === "crystal") {
+        if (hRatio > 0.45) {
+          grad.addColorStop(0, "#9333ea");
+          grad.addColorStop(0.6, "#7c3aed");
+          grad.addColorStop(0.85, "#4c1d95");
+          grad.addColorStop(1, "transparent");
+        } else if (hRatio > 0.15) {
+          grad.addColorStop(0, "#6b21a8");
+          grad.addColorStop(0.6, "#3b0764");
+          grad.addColorStop(1, "transparent");
+        } else {
+          grad.addColorStop(0, "#1e1b4b");
+          grad.addColorStop(1, "transparent");
+        }
+      } else if (this.archetype === "cyber") {
+        if (hRatio > 0.45) {
+          grad.addColorStop(0, "#0891b2");
+          grad.addColorStop(0.6, "#0e7490");
+          grad.addColorStop(0.85, "#155e75");
+          grad.addColorStop(1, "transparent");
+        } else if (hRatio > 0.15) {
+          grad.addColorStop(0, "#164e63");
+          grad.addColorStop(0.6, "#083344");
+          grad.addColorStop(1, "transparent");
+        } else {
+          grad.addColorStop(0, "#0f172a");
+          grad.addColorStop(1, "transparent");
+        }
       } else {
-        // Ash rock
-        grad.addColorStop(0, "#27272a");
-        grad.addColorStop(0.7, "#1c1917");
-        grad.addColorStop(1, "transparent");
+        // Gaia Prime
+        if (hRatio > 0.45) {
+          grad.addColorStop(0, "#10b981");
+          grad.addColorStop(0.6, "#059669");
+          grad.addColorStop(0.85, "#047857");
+          grad.addColorStop(1, "transparent");
+        } else if (hRatio > 0.15) {
+          grad.addColorStop(0, "#4d7c0f");
+          grad.addColorStop(0.6, "#365314");
+          grad.addColorStop(1, "transparent");
+        } else {
+          grad.addColorStop(0, "#27272a");
+          grad.addColorStop(0.7, "#1c1917");
+          grad.addColorStop(1, "transparent");
+        }
       }
 
       ctx.fillStyle = grad;
@@ -311,30 +458,72 @@ export class Planet3DRenderer {
       ctx.fill();
     }
 
-    // 3. Azure Oceans (filling the planet as habitability rises)
+    // 3. Azure & Quantum Oceans (filling as habitability rises)
     if (hRatio > 0.1) {
       const waterAlpha = Math.min(0.85, (hRatio - 0.1) * 2.2);
-      ctx.fillStyle = `rgba(6, 182, 212, ${waterAlpha * 0.5})`;
+      if (this.archetype === "crystal") {
+        ctx.fillStyle = `rgba(168, 85, 247, ${waterAlpha * 0.4})`;
+      } else if (this.archetype === "cyber") {
+        ctx.fillStyle = `rgba(6, 182, 212, ${waterAlpha * 0.45})`;
+      } else {
+        ctx.fillStyle = `rgba(6, 182, 212, ${waterAlpha * 0.5})`;
+      }
       ctx.fillRect(0, 0, w, h);
 
       // Deep ocean bands
       const oceanGrad = ctx.createLinearGradient(0, 0, 0, h);
       oceanGrad.addColorStop(0, "transparent");
-      oceanGrad.addColorStop(0.35, `rgba(2, 132, 199, ${waterAlpha * 0.4})`);
-      oceanGrad.addColorStop(0.65, `rgba(3, 105, 161, ${waterAlpha * 0.4})`);
+      if (this.archetype === "crystal") {
+        oceanGrad.addColorStop(0.35, `rgba(124, 58, 237, ${waterAlpha * 0.4})`);
+        oceanGrad.addColorStop(0.65, `rgba(76, 29, 149, ${waterAlpha * 0.4})`);
+      } else if (this.archetype === "cyber") {
+        oceanGrad.addColorStop(0.35, `rgba(14, 116, 144, ${waterAlpha * 0.4})`);
+        oceanGrad.addColorStop(0.65, `rgba(21, 94, 117, ${waterAlpha * 0.4})`);
+      } else {
+        oceanGrad.addColorStop(0.35, `rgba(2, 132, 199, ${waterAlpha * 0.4})`);
+        oceanGrad.addColorStop(0.65, `rgba(3, 105, 161, ${waterAlpha * 0.4})`);
+      }
       oceanGrad.addColorStop(1, "transparent");
       ctx.fillStyle = oceanGrad;
       ctx.fillRect(0, 0, w, h);
     }
 
-    // 4. Polar ice caps
-    ctx.fillStyle = `rgba(241, 245, 249, ${0.4 + hRatio * 0.45})`;
+    // 4. Night City Lights & Quantum Leylines (Development visualization!)
+    if (hRatio > 0.3) {
+      const cityAlpha = Math.min(0.9, (hRatio - 0.3) * 1.8);
+      ctx.fillStyle = this.archetype === "cyber" ? `rgba(34, 211, 238, ${cityAlpha})` : (this.archetype === "crystal" ? `rgba(232, 121, 249, ${cityAlpha})` : `rgba(253, 224, 71, ${cityAlpha})`);
+      ctx.strokeStyle = this.archetype === "cyber" ? `rgba(56, 189, 248, ${cityAlpha * 0.5})` : `rgba(251, 191, 36, ${cityAlpha * 0.4})`;
+      ctx.lineWidth = 1;
+
+      for (let c = 0; c < continentCount; c++) {
+        const cx = (c * (w / continentCount) + 70) % w;
+        const cy = h * 0.3 + (c % 3) * (h * 0.2);
+        for (let k = 0; k < 6; k++) {
+          const nx = cx + (Math.sin(k * 1.8) * 32);
+          const ny = cy + (Math.cos(k * 1.8) * 24);
+          ctx.beginPath();
+          ctx.arc(nx, ny, 1.8 + (k % 2), 0, Math.PI * 2);
+          ctx.fill();
+          if (k > 0) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(nx, ny);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // 5. Polar Ice & Crystal Caps
+    ctx.fillStyle = this.archetype === "crystal"
+      ? `rgba(233, 213, 255, ${0.4 + hRatio * 0.45})`
+      : `rgba(241, 245, 249, ${0.4 + hRatio * 0.45})`;
     ctx.fillRect(0, 0, w, 28);
     ctx.fillRect(0, h - 28, w, 28);
 
-    // 5. Singularity Quantum Ring / Night lights
-    if (this.evolutionIndex >= 7 || hRatio >= 0.95) {
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.7)";
+    // 6. Singularity Quantum Grid / Ring
+    if (this.evolutionIndex >= 5 || hRatio >= 0.8) {
+      ctx.strokeStyle = this.archetype === "crystal" ? "rgba(216, 180, 254, 0.7)" : "rgba(56, 189, 248, 0.7)";
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 12]);
       ctx.beginPath();
@@ -348,6 +537,7 @@ export class Planet3DRenderer {
     // Update Cloud texture
     this.updateCloudTexture();
   }
+
 
   updateCloudTexture() {
     if (!this.cloudCtx) return;
@@ -531,6 +721,8 @@ export class Planet3DRenderer {
           biome = "sky"; // Poles / upper atmosphere
         } else if (this.habitability > 0.25 && Math.sin(hit.point.x * 3) > 0.2) {
           biome = "water";
+        } else if (this.habitability < 0.25) {
+          biome = "core"; // Plasma core fissures
         }
 
         if (this.onPlanetClick) {
@@ -586,6 +778,36 @@ export class Planet3DRenderer {
         Math.sin(this.moonAngle * 0.6) * 0.8,
         Math.sin(this.moonAngle) * moonDist
       );
+    }
+
+    // Dyson megastructure ring rotation & emergence
+    if (this.dysonRingMesh) {
+      this.dysonRingMesh.rotation.z += 0.0025;
+      const targetRingOpacity = this.habitability > 0.45 ? Math.min(0.85, (this.habitability - 0.45) * 1.8) : 0.0;
+      this.dysonRingMesh.material.opacity += (targetRingOpacity - this.dysonRingMesh.material.opacity) * 0.05;
+      this.dysonRingMesh.visible = this.dysonRingMesh.material.opacity > 0.02;
+    }
+
+    // Orbiting satellite drones progression
+    if (this.satelliteDrones && this.satellitesGroup) {
+      const activeSats = Math.min(this.satelliteDrones.length, Math.floor(this.habitability * 8) + (this.evolutionIndex >= 2 ? 2 : 0));
+      this.satellitesGroup.visible = activeSats > 0;
+
+      for (let i = 0; i < this.satelliteDrones.length; i++) {
+        const s = this.satelliteDrones[i];
+        if (i < activeSats) {
+          s.group.visible = true;
+          s.angle += s.speed;
+          s.group.position.set(
+            Math.cos(s.angle) * s.radius,
+            Math.sin(s.angle) * Math.sin(s.inclination) * s.radius,
+            Math.sin(s.angle) * Math.cos(s.inclination) * s.radius
+          );
+          s.group.rotation.y = s.angle;
+        } else {
+          s.group.visible = false;
+        }
+      }
     }
 
     // Dynamic Day/Night sunlight orbit creating moving planetary terminators

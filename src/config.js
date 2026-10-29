@@ -149,12 +149,12 @@ export const CONFIG = {
 
   // Upgrade definitions categorized by spheres of nature
   UPGRADES: [
-    // 1. Атмосфера
+    // 1. Атмосфера & Излучение
     {
       id: "solar_rays",
-      name: "Солнечные лучи",
+      name: "Звездная ионизация",
       category: "atmosphere",
-      icon: "☀️",
+      icon: "✨",
       desc: "Увеличивает силу каждого клика на +1",
       baseCost: 15,
       costMult: 1.15,
@@ -163,9 +163,9 @@ export const CONFIG = {
     },
     {
       id: "gentle_breeze",
-      name: "Теплый бриз",
+      name: "Солнечный ветер",
       category: "atmosphere",
-      icon: "🍃",
+      icon: "🌠",
       desc: "Увеличивает силу клика на +5",
       baseCost: 120,
       costMult: 1.18,
@@ -174,7 +174,7 @@ export const CONFIG = {
     },
     {
       id: "ozone_layer",
-      name: "Озоновый щит",
+      name: "Магнитный дефлектор",
       category: "atmosphere",
       icon: "🛡️",
       desc: "Дает шанс критического клика с множителем x5",
@@ -195,13 +195,13 @@ export const CONFIG = {
       power: 0.01
     },
 
-    // 2. Гидросфера
+    // 2. Гидросфера & Энергопотоки
     {
       id: "dew_drops",
-      name: "Утренняя роса",
+      name: "Квантовая роса",
       category: "hydrosphere",
-      icon: "💧",
-      desc: "Конденсирует влагу. +1 энергии в секунду",
+      icon: "🧪",
+      desc: "Синтезирует первичные био-мономеры. +1 энергии в секунду",
       baseCost: 20,
       costMult: 1.14,
       type: "passive",
@@ -209,10 +209,10 @@ export const CONFIG = {
     },
     {
       id: "spring_streams",
-      name: "Горные ручьи",
+      name: "Потоки плазмы",
       category: "hydrosphere",
       icon: "🌊",
-      desc: "Журчащие потоки питают почву. +6 энергии в сек",
+      desc: "Энергетические артерии планеты. +6 энергии в сек",
       baseCost: 150,
       costMult: 1.16,
       type: "passive",
@@ -220,10 +220,10 @@ export const CONFIG = {
     },
     {
       id: "azure_lakes",
-      name: "Лазурные озера",
+      name: "Био-резервуары",
       category: "hydrosphere",
-      icon: "🏞️",
-      desc: "Резервуары жизни. +35 энергии в сек",
+      icon: "💠",
+      desc: "Колыбели сложных макромолекул. +35 энергии в сек",
       baseCost: 1100,
       costMult: 1.18,
       type: "passive",
@@ -231,23 +231,23 @@ export const CONFIG = {
     },
     {
       id: "ocean_currents",
-      name: "Глубинные течения",
+      name: "Планетарные леилинии",
       category: "hydrosphere",
       icon: "🌀",
-      desc: "Глобальная циркуляция тепла. +200 энергии в сек",
+      desc: "Глобальная энергосеть материков. +200 энергии в сек",
       baseCost: 7500,
       costMult: 1.22,
       type: "passive",
       power: 200
     },
 
-    // 3. Биосфера
+    // 3. Биосфера & Нейросети
     {
       id: "moss_blanket",
-      name: "Изумрудный мох",
+      name: "Био-мицелий",
       category: "biosphere",
       icon: "🌱",
-      desc: "Смягчает каменистую породу. +2 энергии в сек",
+      desc: "Первичная полимерная сеть. +2 энергии в сек",
       baseCost: 50,
       costMult: 1.15,
       type: "passive",
@@ -255,10 +255,10 @@ export const CONFIG = {
     },
     {
       id: "wildflowers",
-      name: "Полевые цветы",
+      name: "Кристаллические сады",
       category: "biosphere",
       icon: "🌸",
-      desc: "Привлекают пыльцу и жизнь. +15 энергии в сек",
+      desc: "Генерируют резонансную био-пыльцу. +15 энергии в сек",
       baseCost: 350,
       costMult: 1.17,
       type: "passive",
@@ -266,10 +266,10 @@ export const CONFIG = {
     },
     {
       id: "ancient_grove",
-      name: "Древняя роща",
+      name: "Силиконовые рощи",
       category: "biosphere",
       icon: "🌲",
-      desc: "Могучие сосны и дубы. +120 энергии в сек",
+      desc: "Живые антенны биосферы. +120 энергии в сек",
       baseCost: 3200,
       costMult: 1.2,
       type: "passive",
@@ -277,10 +277,10 @@ export const CONFIG = {
     },
     {
       id: "spirit_fauna",
-      name: "Лесные духи и птицы",
+      name: "Кибер-фауна и прото-сознания",
       category: "biosphere",
       icon: "🦌",
-      desc: "Жизнь наполняет каждый уголок. +650 энергии в сек",
+      desc: "Разумные био-сущности. +650 энергии в сек",
       baseCost: 22000,
       costMult: 1.25,
       type: "passive",
@@ -325,10 +325,10 @@ export const CONFIG = {
     },
     {
       id: "mut_aquifer",
-      name: "Артезианский горизонт",
+      name: "Крио-резервуар",
       category: "mutations",
-      icon: "💧",
-      desc: "Клик по озеру или реке дает утроенную силу влаги (+200% в зоне воды)",
+      icon: "💎",
+      desc: "Клик по океану дает утроенную силу эссенции (+200% в зоне воды)",
       baseCost: 1500,
       costMult: 2.0,
       type: "zone_water",
@@ -377,7 +377,7 @@ export const CONFIG = {
       desc: "На склоне скалы обнаружена инопланетная структура из неизвестного сплава.",
       choices: [
         { label: "Активировать резонанс (Сила клика x4 на 20 сек)", action: "buff_temp", type: "click", mult: 4.0, time: 20 },
-        { label: "Поглотить энергию (+1,200 💧 мгновенно)", action: "instant_energy", amount: 1200 }
+        { label: "Поглотить энергию (+1,200 🧬 мгновенно)", action: "instant_energy", amount: 1200 }
       ]
     },
     {

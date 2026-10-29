@@ -291,7 +291,7 @@ export class GameState {
       const burst = Math.max(500, Math.round(this.passivePerSec * choice.multiplier));
       this.energy += burst;
       this.totalEnergyEarned += burst;
-      toastMsg = `🌋 Конденсат собран: +${burst} 💧!`;
+      toastMsg = `🌋 Конденсат собран: +${burst} 🧬!`;
     } else if (choice.action === "buff_temp") {
       if (choice.type === "passive") {
         this.effects.anomalyPassiveTimer = choice.time;
@@ -305,17 +305,17 @@ export class GameState {
     } else if (choice.action === "instant_energy") {
       this.energy += choice.amount;
       this.totalEnergyEarned += choice.amount;
-      toastMsg = `🗿 Энергия монолита: +${choice.amount} 💧!`;
+      toastMsg = `🗿 Энергия монолита: +${choice.amount} 🧬!`;
     } else if (choice.action === "time_warp") {
       const warp = Math.max(1000, Math.round(this.passivePerSec * choice.seconds));
       this.energy += warp;
       this.totalEnergyEarned += warp;
-      toastMsg = `⏳ Временной скачок: получено +${warp} 💧 (за 60с времени)!`;
+      toastMsg = `⏳ Временной скачок: получено +${warp} 🧬 (за 60с времени)!`;
     } else if (choice.action === "percent_energy") {
       const bonus = Math.max(800, Math.round(this.energy * choice.percent));
       this.energy += bonus;
       this.totalEnergyEarned += bonus;
-      toastMsg = `💎 Кристальный заряд: +${bonus} 💧!`;
+      toastMsg = `💎 Кристальный заряд: +${bonus} 🧬!`;
     }
 
     this.recalculateStats();
@@ -335,7 +335,7 @@ export class GameState {
       const bonusEnergy = Math.max(300, Math.round(this.passivePerSec * 30 * boostMult));
       this.energy += bonusEnergy;
       this.totalEnergyEarned += bonusEnergy;
-      result.text = `🌿 ВСПЛЕСК БИОМАССЫ! +${bonusEnergy} 💧!`;
+      result.text = `🌿 ВСПЛЕСК БИОМАССЫ! +${bonusEnergy} 🧬!`;
     } else if (bonusType === "sunburst") {
       this.effects.sunburstTimer = 15.0 * (boostMult > 1 ? 1.5 : 1.0);
       this.recalculateStats();
@@ -344,7 +344,7 @@ export class GameState {
       const gift = Math.max(500, Math.round(this.energy * 0.25 * boostMult));
       this.energy += gift;
       this.totalEnergyEarned += gift;
-      result.text = `✨ ЗВЕЗДНЫЙ ДАР! +${gift} 💧!`;
+      result.text = `✨ ЗВЕЗДНЫЙ ДАР! +${gift} 🧬!`;
     }
 
     this.recalculateStats();
