@@ -1,6 +1,7 @@
 import { CONFIG } from "./config.js";
 import { GameState } from "./state.js";
 import { LandscapeRenderer } from "./landscape.js";
+import { Planet3DRenderer } from "./renderer3d.js";
 import { ParticleSystem } from "./particles.js";
 import { sounds } from "./audio.js";
 import { network } from "./network.js";
@@ -9,10 +10,15 @@ import { UIManager } from "./ui.js";
 // Main Game Controller
 class Game {
   constructor() {
-    this.canvas = document.getElementById("game-canvas");
+    this.canvas2D = document.getElementById("game-canvas");
+    this.canvas3D = document.getElementById("webgl-canvas");
+    this.canvas = this.canvas2D; // legacy ref
+    this.viewMode = "3d"; // Default to 3D interactive planet!
+
     this.state = new GameState();
     this.particles = new ParticleSystem();
-    this.landscape = new LandscapeRenderer(this.canvas);
+    this.landscape = new LandscapeRenderer(this.canvas2D);
+    this.renderer3D = new Planet3DRenderer(this.canvas3D);
     this.sounds = sounds;
     this.network = network;
     this.ui = new UIManager(this.state, this.network, this.sounds, this.particles);
@@ -35,16 +41,40 @@ class Game {
       }, 800);
     }
 
+    if (this.renderer3D && this.renderer3D.isSupported) {
+      this.renderer3D.setHabitability(this.state.habitability);
+      this.renderer3D.setEvolutionStage(this.state.currentEvolutionIndex);
+
+      this.renderer3D.onPlanetClick = ({ clientX, clientY, biome }) => {
+        this.handleClick(clientX, clientY, biome);
+      };
+      this.renderer3D.onCometClick = () => {
+        const bonus = this.state.claimCometBonus();
+        this.sounds.playMilestone();
+        this.particles.addFloater(window.innerWidth * 0.5, window.innerHeight * 0.35, bonus.text, "#fde047", true);
+        this.ui.showToast(bonus.text, "success");
+        this.ui.render();
+      };
+    }
+
     this.landscape.setHabitability(this.state.habitability);
     this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
 
-    this.canvas.addEventListener("pointerdown", (e) => this.handlePointerDown(e));
+    this.canvas2D.addEventListener("pointerdown", (e) => this.handlePointerDown(e));
+
+    // View mode toggle button (3D / 2D)
+    this.viewModeBtn = document.getElementById("view-mode-toggle-btn");
+    if (this.viewModeBtn) {
+      this.viewModeBtn.addEventListener("click", () => {
+        this.toggleViewMode();
+      });
+    }
 
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" && e.target.tagName !== "INPUT") {
         e.preventDefault();
-        const rect = this.canvas.getBoundingClientRect();
-        this.handleClick(rect.width * 0.5, rect.height * 0.65);
+        const rect = (this.viewMode === "3d" ? this.canvas3D : this.canvas2D).getBoundingClientRect();
+        this.handleClick(rect.width * 0.5, rect.height * 0.5);
       }
     });
 
@@ -53,6 +83,31 @@ class Game {
     this.ui.render();
 
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  toggleViewMode() {
+    this.viewMode = (this.viewMode === "3d") ? "2d" : "3d";
+    if (this.viewMode === "3d") {
+      if (this.canvas3D) this.canvas3D.classList.remove("hidden");
+      if (this.canvas2D) this.canvas2D.classList.add("hidden");
+      if (this.viewModeBtn) {
+        const label = this.viewModeBtn.querySelector(".btn-label");
+        const icon = this.viewModeBtn.querySelector(".btn-icon");
+        if (label) label.textContent = "3D";
+        if (icon) icon.textContent = "🪐";
+      }
+      this.ui.showToast("Режим: Интерактивная 3D Планета 🪐", "info");
+    } else {
+      if (this.canvas3D) this.canvas3D.classList.add("hidden");
+      if (this.canvas2D) this.canvas2D.classList.remove("hidden");
+      if (this.viewModeBtn) {
+        const label = this.viewModeBtn.querySelector(".btn-label");
+        const icon = this.viewModeBtn.querySelector(".btn-icon");
+        if (label) label.textContent = "2D";
+        if (icon) icon.textContent = "🌄";
+      }
+      this.ui.showToast("Режим: Живой 2D Пейзаж 🌄", "info");
+    }
   }
 
   setupNetworkHandlers() {
@@ -295,6 +350,9 @@ class Game {
       }
 
       if (evolutionChanged && newEvolutionStage) {
+        if (this.renderer3D && this.renderer3D.isSupported) {
+          this.renderer3D.setEvolutionStage(this.state.currentEvolutionIndex);
+        }
         this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
         this.ui.showEvolutionModal(newEvolutionStage);
       }
@@ -305,7 +363,17 @@ class Game {
 
     this.cometTimer -= dt;
     if (this.cometTimer <= 0) {
-      this.particles.spawnLuckyComet();
+      if (this.viewMode === "3d" && this.renderer3D && this.renderer3D.isSupported) {
+        this.renderer3D.spawn3DComet(() => {
+          const bonus = this.state.claimCometBonus();
+          this.sounds.playMilestone();
+          this.particles.addFloater(window.innerWidth * 0.5, window.innerHeight * 0.35, bonus.text, "#fde047", true);
+          this.ui.showToast(bonus.text, "success");
+          this.ui.render();
+        });
+      } else {
+        this.particles.spawnLuckyComet();
+      }
       this.sounds.playWaterDrop();
       this.cometTimer = CONFIG.COMET_INTERVAL_SEC + (Math.random() - 0.5) * 10;
     }
@@ -330,27 +398,41 @@ class Game {
       this.saveTimer = 0;
     }
 
-    this.landscape.setHabitability(this.state.habitability);
-    this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
-    this.landscape.setWeather(
-      this.state.effects.sandstormTimer > 0 ? 1 : 0,
-      this.state.upgrades.spring_streams > 0 ? 0.3 : 0
-    );
+    if (this.viewMode === "3d" && this.renderer3D && this.renderer3D.isSupported) {
+      this.renderer3D.setHabitability(this.state.habitability);
+      this.renderer3D.setEvolutionStage(this.state.currentEvolutionIndex);
+      this.renderer3D.setWeather(
+        this.state.effects.sandstormTimer > 0 ? 1 : 0,
+        this.state.upgrades.spring_streams > 0 ? 0.3 : 0
+      );
+      this.renderer3D.update(dt);
+      this.renderer3D.render();
+    } else {
+      this.landscape.setHabitability(this.state.habitability);
+      this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
+      this.landscape.setWeather(
+        this.state.effects.sandstormTimer > 0 ? 1 : 0,
+        this.state.upgrades.spring_streams > 0 ? 0.3 : 0
+      );
 
-    this.landscape.update(dt * 60);
+      this.landscape.update(dt * 60);
+      this.landscape.draw();
+      this.particles.draw(this.landscape.ctx);
+    }
+
     this.particles.update(dt * 60);
-
-    this.landscape.draw();
-    this.particles.draw(this.landscape.ctx);
 
     requestAnimationFrame((t) => this.loop(t));
   }
 }
 
-if (document.readyState === "loading") {
-  window.addEventListener("DOMContentLoaded", () => {
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", () => {
+      window.game = new Game();
+    });
+  } else {
     window.game = new Game();
-  });
-} else {
-  window.game = new Game();
+  }
 }
+
