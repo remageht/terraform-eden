@@ -137,6 +137,8 @@ export class SoundController {
       osc.start(now + idx * 0.08);
       osc.stop(now + idx * 0.08 + 0.85);
     });
+  }
+
   // Evolution milestone reveal fanfare
   playEvolutionUnlock() {
     if (!this.enabled) return;

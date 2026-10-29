@@ -109,23 +109,25 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 20px;
-  height: 58px;
+  padding: 8px 16px;
+  min-height: 52px;
   background: var(--surface-hud);
   backdrop-filter: var(--blur-hud);
   -webkit-backdrop-filter: var(--blur-hud);
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-hud);
   pointer-events: auto;
-  gap: 20px;
+  gap: 12px;
+  position: relative;
+  z-index: 50;
 }
 
 /* Left: Branding & Current Stage */
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-width: 280px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .game-logo {
@@ -1553,37 +1555,43 @@ html, body {
 }
 
 /* Responsive adjustments for Tablets and Mobile */
+@media (max-width: 1100px) {
+  .stage-desc-text {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   #top-bar {
-    padding: 8px 12px;
-    height: auto;
-    flex-wrap: wrap;
+    padding: 6px 12px;
     gap: 10px;
+    height: 48px;
   }
   
-  .header-left {
-    min-width: 0;
-    flex: 1;
-  }
-  
-  .stage-desc-text {
+  .stage-info {
     display: none;
   }
 
   .habitability-container {
-    order: 3;
-    width: 100%;
-    max-width: 100%;
+    max-width: 220px;
+  }
+
+  .btn-label {
+    display: none;
+  }
+
+  .btn-hud {
+    padding: 6px 8px;
   }
 
   #main-content {
     flex-direction: column;
-    padding: 10px;
+    padding: 8px;
   }
 
   #center-display {
-    top: 8px;
-    width: 90%;
+    top: 6px;
+    width: 92%;
   }
 
   #shop-drawer {
@@ -1619,5 +1627,14 @@ html, body {
 
   .mp-modes-selection {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .logo-tag {
+    display: none;
+  }
+  .habitability-container {
+    display: none;
   }
 }
