@@ -23,27 +23,27 @@
   <!-- Game UI Container -->
   <div id="game-container">
     
-    <!-- Top Bar: Logo, Stats, Habitability, and Actions -->
+    <!-- Top Telemetry Command Bar -->
     <header id="top-bar">
       <div class="header-left">
-        <h1 class="game-logo">
-          <span class="logo-icon">🌿</span>
-          <span class="logo-text">TERRAFORM</span>
-          <span class="logo-sub">Eden</span>
-        </h1>
+        <div class="game-logo">
+          <span class="logo-symbol">◈</span>
+          <span class="logo-title">TERRAFORM</span>
+          <span class="logo-tag">EDEN // v2.0</span>
+        </div>
         <div class="stage-info">
           <div class="stage-badge-row">
-            <span id="stage-name" class="stage-badge">🧬 Первичный Бульон & ДНК</span>
+            <span id="stage-name" class="stage-badge">Первичный Бульон & ДНК</span>
             <span id="stardust-counter" class="stardust-badge hidden">⭐ 0</span>
           </div>
           <p id="stage-desc" class="stage-desc-text">Химический хаос порождает первые цепочки органических полимеров.</p>
         </div>
       </div>
 
-      <!-- Center Progress: Terraforming Habitability -->
+      <!-- Center Telemetry: Planetary Evolution Habitability -->
       <div class="habitability-container">
         <div class="habitability-label-row">
-          <span>Прогресс Эволюции Мира</span>
+          <span class="habitability-label">ЭВОЛЮЦИЯ БИОСФЕРЫ</span>
           <span id="habitability-percent" class="habitability-val">0%</span>
         </div>
         <div class="progress-track">
@@ -51,22 +51,27 @@
         </div>
       </div>
 
-      <!-- Right Actions -->
+      <!-- Right Action Bar -->
       <div class="header-right">
-        <button id="open-reality-engine-btn" class="btn btn-reality" title="Древо Реальности (Мета-престиж)">
-          <span>🌀 Реальность</span>
+        <button id="open-reality-engine-btn" class="btn btn-hud btn-reality" title="Древо Реальности (Мета-престиж)">
+          <span class="btn-icon">🌀</span>
+          <span class="btn-label">Реальность</span>
         </button>
-        <button id="prestige-btn" class="btn btn-prestige hidden" title="Совершить Большой Взрыв и Перерождение">
-          <span>⭐ Перерождение</span>
+        <button id="prestige-btn" class="btn btn-hud btn-prestige hidden" title="Совершить Большой Взрыв и Перерождение">
+          <span class="btn-icon">⭐</span>
+          <span class="btn-label">Перерождение</span>
         </button>
-        <button id="open-logbook-btn" class="btn btn-glass" title="Хроники Эволюции">
-          <span>📜 Журнал</span>
+        <button id="open-logbook-btn" class="btn btn-hud" title="Хроники Эволюции">
+          <span class="btn-icon">📜</span>
+          <span class="btn-label">Хроники</span>
         </button>
-        <button id="open-mp-modal-btn" class="btn btn-glass" title="Мультиплеер (Co-op и PvP)">
-          <span>👥 Мультиплеер</span>
+        <button id="open-mp-modal-btn" class="btn btn-hud" title="Мультиплеер (Co-op и PvP)">
+          <span class="btn-icon">👥</span>
+          <span class="btn-label">Сеть</span>
         </button>
-        <button id="sound-toggle-btn" class="btn btn-icon-glass" title="Включить/выключить звук">
-          <span>🔊 Звук</span>
+        <button id="sound-toggle-btn" class="btn btn-hud btn-sound" title="Включить / выключить звук">
+          <span class="btn-icon">🔊</span>
+          <span class="btn-label">Звук</span>
         </button>
       </div>
     </header>
@@ -74,11 +79,12 @@
     <!-- Main Content Area -->
     <main id="main-content">
       
-      <!-- Central Energy Display and Instructions -->
+      <!-- Central Floating Resource HUD -->
       <div id="center-display">
-        <!-- Active Buffs Pill Bar -->
+        <!-- Active Buffs Bar -->
         <div id="active-buffs-bar" class="buffs-bar hidden"></div>
 
+        <!-- Sleek Telemetry Vital Gauge -->
         <div class="energy-card">
           <div class="energy-primary">
             <span class="resource-symbol">💧</span>
@@ -88,7 +94,7 @@
             <span id="passive-rate" class="rate-badge passive">+0 /сек</span>
             <span id="click-rate" class="rate-badge click">+1 /клик</span>
           </div>
-          <div class="click-hint">Кликайте по небу, озеру или холмам. Ловите кометы и аномалии! ✨</div>
+          <div id="click-hint" class="click-hint">Кликните по небу, озеру или холмам для сбора энергии</div>
         </div>
 
         <!-- Multiplayer Live HUD (Co-op / PvP) -->
@@ -120,20 +126,29 @@
         </div>
       </div>
 
-      <!-- Right Shop Drawer (Upgrades) -->
-      <aside id="shop-drawer">
+      <!-- Right Shop Drawer (Upgrades) with Sleek Collapse Tab -->
+      <aside id="shop-drawer" class="shop-panel">
+        <button id="drawer-toggle-btn" class="drawer-toggle-tab" title="Свернуть / Развернуть каталог (Tab)">
+          <span class="toggle-icon">▸</span>
+          <span class="toggle-text">СФЕРЫ</span>
+        </button>
+
         <div class="drawer-header">
-          <h2 class="drawer-title">🌱 Сферы Природы</h2>
+          <div class="drawer-title-group">
+            <span class="drawer-tag">КАТАЛОГ</span>
+            <h2 class="drawer-title">Сферы Развития</h2>
+          </div>
+          <span class="drawer-shortcut-hint">Tab</span>
         </div>
 
         <!-- Category Tabs -->
         <nav class="categories-nav">
           <button class="category-tab active" data-category="all">Все</button>
-          <button class="category-tab" data-category="atmosphere">☀️ Небо</button>
-          <button class="category-tab" data-category="hydrosphere">💧 Вода</button>
-          <button class="category-tab" data-category="biosphere">🌲 Флора</button>
-          <button class="category-tab" data-category="mutations">🧬 Мутации</button>
-          <button class="category-tab" data-category="harmony">🔮 Магия</button>
+          <button class="category-tab" data-category="atmosphere">Небо</button>
+          <button class="category-tab" data-category="hydrosphere">Вода</button>
+          <button class="category-tab" data-category="biosphere">Флора</button>
+          <button class="category-tab" data-category="mutations">Мутации</button>
+          <button class="category-tab" data-category="harmony">Гармония</button>
         </nav>
 
         <!-- Upgrades List -->
@@ -148,12 +163,12 @@
   <div id="evolution-modal" class="modal-backdrop hidden">
     <div class="evolution-modal-card">
       <div class="evolution-glow-fx"></div>
-      <div class="evolution-badge">✨ НОВЫЙ ЭВОЛЮЦИОННЫЙ СКАЧОК</div>
+      <div class="evolution-badge">ЭВОЛЮЦИОННЫЙ РУБЕЖ</div>
       <div id="evolution-big-icon" class="evolution-icon-anim">🧬</div>
       <h2 id="evolution-name" class="evolution-title">Первичный Бульон & ДНК</h2>
       <div id="evolution-organism" class="evolution-sub">Организм: Молекула РНК</div>
       <p id="evolution-story-text" class="evolution-text">История эпохи...</p>
-      <button id="close-evolution-btn" class="btn btn-primary evolution-btn">Принять форму и продолжить 🧬</button>
+      <button id="close-evolution-btn" class="btn btn-primary evolution-btn">Принять форму жизни</button>
     </div>
   </div>
 
@@ -162,8 +177,9 @@
     <div class="modal-card reality-modal-card">
       <div class="modal-header">
         <div class="reality-header-left">
-          <h3 class="modal-title">🌀 Древо Реальности (Мета-Престиж)</h3>
-          <span class="reality-sub">Постоянные космические исследования между перерождениями</span>
+          <span class="modal-tag">МЕТА-ПРЕСТИЖ</span>
+          <h3 class="modal-title">Древо Реальности</h3>
+          <span class="reality-sub">Постоянные фундаментальные исследования Вселенной</span>
         </div>
         <button id="close-reality-btn" class="modal-close">&times;</button>
       </div>
@@ -173,19 +189,19 @@
         <div class="rebirth-banner">
           <div class="rebirth-stats">
             <div class="stardust-row">
-              <span>Ваша Звездная Пыль:</span>
+              <span class="stat-label">Звездная Пыль:</span>
               <strong id="stardust-balance" class="stardust-val">0</strong>
               <span class="stardust-sym">⭐</span>
             </div>
             <div class="pending-row">
-              <span>Будет получено при сжатии Вселенной:</span>
+              <span class="stat-label">При сжатии Вселенной:</span>
               <strong id="pending-stardust-count" class="pending-val">+0 ⭐</strong>
             </div>
           </div>
-          <button id="btn-execute-rebirth" class="btn btn-supernova">💥 Запустить Большой Взрыв</button>
+          <button id="btn-execute-rebirth" class="btn btn-supernova">Запустить Большое Сжатие</button>
         </div>
 
-        <div class="reality-divider"><span>ТАЛАНТЫ РЕАЛЬНОСТИ (СОХРАНЯЮТСЯ ВСЕГДА)</span></div>
+        <div class="reality-divider"><span>ТАЛАНТЫ РЕАЛЬНОСТИ</span></div>
 
         <!-- Permanent Talents List -->
         <div id="talents-list" class="talents-grid"></div>
@@ -197,7 +213,10 @@
   <div id="logbook-modal" class="modal-backdrop hidden">
     <div class="modal-card logbook-card">
       <div class="modal-header">
-        <h3 class="modal-title">📜 Хроники Эволюции: От ДНК до Человека</h3>
+        <div class="modal-header-text">
+          <span class="modal-tag">АРХИВ МИССИИ</span>
+          <h3 class="modal-title">Хроники Эволюции</h3>
+        </div>
         <button id="close-logbook-btn" class="modal-close">&times;</button>
       </div>
       <div id="logbook-entries" class="logbook-scroll"></div>
@@ -225,24 +244,27 @@
   <div id="multiplayer-modal" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">🌐 Мультиплеер (P2P WebRTC)</h3>
+        <div class="modal-header-text">
+          <span class="modal-tag">КВАНТОВЫЙ КАНАЛ</span>
+          <h3 class="modal-title">Сетевой Модуль (P2P)</h3>
+        </div>
         <button id="close-mp-modal-btn" class="modal-close">&times;</button>
       </div>
 
       <div class="modal-body">
         <p class="modal-intro">
-          Играйте напрямую с друзьями без серверов и задержек! Выберите режим:
+          Прямое сопряжение между наблюдателями без внешних серверов. Выберите режим:
         </p>
 
         <div class="mp-modes-selection">
           <div class="mp-mode-card">
-            <h4>🌿 Кооператив (Co-op)</h4>
+            <h4>Кооператив (Co-op)</h4>
             <p>Общая планета, совместная казна, синхронные комбо и взаимные усиления.</p>
             <button id="btn-create-coop" class="btn btn-primary">Создать Кооператив</button>
           </div>
 
           <div class="mp-mode-card">
-            <h4>⚔️ PvP Дуэль (Гонка)</h4>
+            <h4>PvP Дуэль (Гонка)</h4>
             <p>Кто первым достигнет 100% жизни? Насылайте бури, засухи и метеориты!</p>
             <button id="btn-create-pvp" class="btn btn-accent">Создать PvP Дуэль</button>
           </div>
@@ -253,15 +275,15 @@
             <span>Код комнаты:</span>
             <strong id="share-room-code" class="code-badge">------</strong>
           </div>
-          <button id="btn-copy-link" class="btn btn-secondary">📋 Скопировать ссылку-приглашение</button>
+          <button id="btn-copy-link" class="btn btn-secondary">Скопировать ссылку-приглашение</button>
         </div>
 
         <div class="modal-divider"><span>ИЛИ</span></div>
 
         <div class="join-room-section">
-          <h4>Присоединиться к другу:</h4>
+          <h4>Присоединиться к напарнику:</h4>
           <div class="join-input-group">
-            <input type="text" id="room-code-input" placeholder="Введите 5-значный код комнаты" maxlength="16">
+            <input type="text" id="room-code-input" placeholder="Введите код комнаты" maxlength="16">
             <button id="btn-join-room" class="btn btn-primary">Войти</button>
           </div>
         </div>

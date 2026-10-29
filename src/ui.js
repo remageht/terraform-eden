@@ -46,8 +46,14 @@ export class UIManager {
     this.categoryTabs = document.querySelectorAll(".category-tab");
     this.prestigeBtn = document.getElementById("prestige-btn");
     this.soundToggleBtn = document.getElementById("sound-toggle-btn");
+    this.soundIcon = this.soundToggleBtn?.querySelector(".btn-icon");
+    this.soundLabel = this.soundToggleBtn?.querySelector(".btn-label");
     this.logbookBtn = document.getElementById("open-logbook-btn");
     this.realityEngineBtn = document.getElementById("open-reality-engine-btn");
+    this.shopDrawer = document.getElementById("shop-drawer");
+    this.drawerToggleBtn = document.getElementById("drawer-toggle-btn");
+    this.drawerToggleIcon = this.drawerToggleBtn?.querySelector(".toggle-icon");
+    this.clickHint = document.getElementById("click-hint");
 
     // Multiplayer HUD elements
     this.mpPanel = document.getElementById("mp-hud");
@@ -104,6 +110,32 @@ export class UIManager {
   }
 
   bindEvents() {
+    // Drawer collapse / expand toggle
+    if (this.drawerToggleBtn) {
+      this.drawerToggleBtn.addEventListener("click", () => {
+        this.toggleShopDrawer();
+      });
+    }
+
+    // Global Hotkeys: Tab = toggle shop, Escape = close modals
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        this.toggleShopDrawer();
+      } else if (e.key === "Escape") {
+        this.closeAllModals();
+      }
+    });
+
+    // Dismiss modals by clicking on backdrop
+    document.querySelectorAll(".modal-backdrop").forEach(modal => {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.classList.add("hidden");
+        }
+      });
+    });
+
     // Category tabs
     this.categoryTabs.forEach(tab => {
       tab.addEventListener("click", () => {
@@ -118,7 +150,8 @@ export class UIManager {
     if (this.soundToggleBtn) {
       this.soundToggleBtn.addEventListener("click", () => {
         const enabled = this.sounds.toggleSound();
-        this.soundToggleBtn.textContent = enabled ? "🔊 Звук: ВКЛ" : "🔇 Звук: ВЫКЛ";
+        if (this.soundIcon) this.soundIcon.textContent = enabled ? "🔊" : "🔇";
+        if (this.soundLabel) this.soundLabel.textContent = enabled ? "Звук" : "Выкл";
         this.soundToggleBtn.classList.toggle("muted", !enabled);
       });
     }
@@ -238,6 +271,26 @@ export class UIManager {
     }, 3500);
   }
 
+  toggleShopDrawer() {
+    if (!this.shopDrawer) return;
+    const isCollapsed = this.shopDrawer.classList.toggle("collapsed");
+    if (this.drawerToggleIcon) {
+      this.drawerToggleIcon.textContent = isCollapsed ? "◂" : "▸";
+    }
+  }
+
+  closeAllModals() {
+    [
+      this.evolutionModal,
+      this.realityModal,
+      this.logbookModal,
+      this.anomalyModal,
+      this.mpModal
+    ].forEach(m => {
+      if (m) m.classList.add("hidden");
+    });
+  }
+
   // Display Cinematic Evolution Modal
   showEvolutionModal(stageDef) {
     if (!this.evolutionModal || !stageDef) return;
@@ -314,16 +367,21 @@ export class UIManager {
       card.className = "upgrade-card locked";
 
       card.innerHTML = `
-        <div class="upgrade-icon">${u.icon}</div>
-        <div class="upgrade-info">
-          <div class="upgrade-title-row">
-            <span class="upgrade-name">${u.name}</span>
-            <span class="upgrade-level js-level">ур. 0</span>
+        <div class="upgrade-card-main">
+          <div class="upgrade-icon">${u.icon}</div>
+          <div class="upgrade-info">
+            <div class="upgrade-title-row">
+              <span class="upgrade-name">${u.name}</span>
+              <span class="upgrade-level js-level">LVL 0</span>
+            </div>
+            <div class="upgrade-desc">${u.desc}</div>
+            <div class="upgrade-cost-row">
+              <span class="upgrade-cost js-cost">0 💧</span>
+            </div>
           </div>
-          <div class="upgrade-desc">${u.desc}</div>
-          <div class="upgrade-cost-row">
-            <span class="upgrade-cost js-cost">0 💧</span>
-          </div>
+        </div>
+        <div class="upgrade-progress-track">
+          <div class="upgrade-progress-bar js-progress"></div>
         </div>
       `;
 
@@ -355,6 +413,7 @@ export class UIManager {
         cardEl: card,
         levelEl: card.querySelector(".js-level"),
         costEl: card.querySelector(".js-cost"),
+        progressEl: card.querySelector(".js-progress"),
         def: u
       });
 
@@ -365,13 +424,18 @@ export class UIManager {
   }
 
   updateUpgradesDisplay() {
-    this.upgradeCardElements.forEach(({ cardEl, levelEl, costEl, def }) => {
+    this.upgradeCardElements.forEach(({ cardEl, levelEl, costEl, progressEl, def }) => {
       const level = this.state.upgrades[def.id] || 0;
       const cost = this.state.getUpgradeCost(def.id);
       const canAfford = this.state.energy >= cost;
 
-      levelEl.textContent = `ур. ${level}`;
+      levelEl.textContent = `LVL ${level}`;
       costEl.textContent = `${formatNumber(cost)} 💧`;
+
+      const pct = Math.min(100, Math.floor((this.state.energy / Math.max(1, cost)) * 100));
+      if (progressEl) {
+        progressEl.style.width = `${pct}%`;
+      }
 
       if (canAfford) {
         cardEl.classList.add("affordable");
@@ -524,7 +588,7 @@ export class UIManager {
 
     // Evolution stage in header
     const currentEvo = CONFIG.EVOLUTION_STAGES[this.state.currentEvolutionIndex];
-    if (this.stageName) this.stageName.textContent = `${currentEvo.icon} ${currentEvo.name}`;
+    if (this.stageName) this.stageName.textContent = `${currentEvo.name}`;
     if (this.stageDesc) this.stageDesc.textContent = currentEvo.description;
 
     const percent = Math.floor(this.state.habitability * 100);
@@ -546,9 +610,21 @@ export class UIManager {
     if (this.prestigeBtn) {
       if (pendingStardust > 0) {
         this.prestigeBtn.classList.remove("hidden");
-        this.prestigeBtn.innerHTML = `<span>⭐ Перерождение (+${pendingStardust})</span>`;
+        const label = this.prestigeBtn.querySelector(".btn-label");
+        if (label) {
+          label.textContent = `Сжатие (+${pendingStardust})`;
+        } else {
+          this.prestigeBtn.innerHTML = `<span class="btn-icon">⭐</span><span class="btn-label">Сжатие (+${pendingStardust})</span>`;
+        }
       } else {
         this.prestigeBtn.classList.add("hidden");
+      }
+    }
+
+    // Auto-fade click hint
+    if (this.clickHint) {
+      if (this.state.totalClicks > 6 || this.state.energy > 30) {
+        this.clickHint.classList.add("hidden-hint");
       }
     }
 
