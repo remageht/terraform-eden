@@ -11,10 +11,11 @@ export function formatNumber(num) {
 }
 
 export class UIManager {
-  constructor(state, network, sounds) {
+  constructor(state, network, sounds, particles) {
     this.state = state;
     this.network = network;
     this.sounds = sounds;
+    this.particles = particles;
 
     this.activeCategory = "all";
     this.upgradeCardElements = new Map();
@@ -35,6 +36,7 @@ export class UIManager {
     this.stageDesc = document.getElementById("stage-desc");
     this.habitabilityBar = document.getElementById("habitability-progress");
     this.habitabilityPercent = document.getElementById("habitability-percent");
+    this.stardustHeaderDisplay = document.getElementById("stardust-counter");
 
     // Buffs banner
     this.activeBuffsContainer = document.getElementById("active-buffs-bar");
@@ -45,6 +47,7 @@ export class UIManager {
     this.prestigeBtn = document.getElementById("prestige-btn");
     this.soundToggleBtn = document.getElementById("sound-toggle-btn");
     this.logbookBtn = document.getElementById("open-logbook-btn");
+    this.realityEngineBtn = document.getElementById("open-reality-engine-btn");
 
     // Multiplayer HUD elements
     this.mpPanel = document.getElementById("mp-hud");
@@ -67,17 +70,26 @@ export class UIManager {
     this.copyShareLinkBtn = document.getElementById("btn-copy-link");
     this.disconnectMpBtn = document.getElementById("btn-disconnect-mp");
 
+    // Evolution Era Showcase Modal (DNA to Human)
+    this.evolutionModal = document.getElementById("evolution-modal");
+    this.evolutionIcon = document.getElementById("evolution-big-icon");
+    this.evolutionName = document.getElementById("evolution-name");
+    this.evolutionOrganism = document.getElementById("evolution-organism");
+    this.evolutionStoryText = document.getElementById("evolution-story-text");
+    this.closeEvolutionBtn = document.getElementById("close-evolution-btn");
+
+    // Reality Engine / Prestige Modal
+    this.realityModal = document.getElementById("reality-modal");
+    this.closeRealityBtn = document.getElementById("close-reality-btn");
+    this.stardustBalanceDisplay = document.getElementById("stardust-balance");
+    this.pendingStardustDisplay = document.getElementById("pending-stardust-count");
+    this.btnExecuteRebirth = document.getElementById("btn-execute-rebirth");
+    this.talentsContainer = document.getElementById("talents-list");
+
     // Story Logbook Modal
     this.logbookModal = document.getElementById("logbook-modal");
     this.closeLogbookBtn = document.getElementById("close-logbook-btn");
     this.logbookEntriesContainer = document.getElementById("logbook-entries");
-
-    // Story Popup Dialog
-    this.storyPopup = document.getElementById("story-popup");
-    this.storyPopupTitle = document.getElementById("story-popup-title");
-    this.storyPopupDate = document.getElementById("story-popup-date");
-    this.storyPopupText = document.getElementById("story-popup-text");
-    this.closeStoryPopupBtn = document.getElementById("close-story-popup-btn");
 
     // Anomaly Event Modal
     this.anomalyModal = document.getElementById("anomaly-modal");
@@ -111,6 +123,55 @@ export class UIManager {
       });
     }
 
+    // Evolution Modal close
+    if (this.closeEvolutionBtn) {
+      this.closeEvolutionBtn.addEventListener("click", () => {
+        this.evolutionModal.classList.add("hidden");
+      });
+    }
+
+    // Reality Engine Modal open / close
+    if (this.realityEngineBtn) {
+      this.realityEngineBtn.addEventListener("click", () => {
+        this.renderRealityEngine();
+        this.realityModal.classList.remove("hidden");
+      });
+    }
+    if (this.prestigeBtn) {
+      this.prestigeBtn.addEventListener("click", () => {
+        this.renderRealityEngine();
+        this.realityModal.classList.remove("hidden");
+      });
+    }
+    if (this.closeRealityBtn) {
+      this.closeRealityBtn.addEventListener("click", () => {
+        this.realityModal.classList.add("hidden");
+      });
+    }
+
+    // Execute Big Crunch Rebirth
+    if (this.btnExecuteRebirth) {
+      this.btnExecuteRebirth.addEventListener("click", () => {
+        const pending = this.state.getPendingStardust();
+        if (pending <= 0) {
+          this.showToast("Накопите минимум 50,000 энергии для первого перерождения!", "warning");
+          return;
+        }
+
+        if (confirm(`Запустить Большой Взрыв? Текущая Вселенная свернется, а вы получите +${pending} ⭐ Звездной Пыли для мета-исследований!`)) {
+          const earned = this.state.prestige();
+          if (earned > 0) {
+            this.realityModal.classList.add("hidden");
+            this.sounds.playSupernova();
+            if (this.particles) this.particles.triggerSupernova();
+            this.showToast(`🌌 БОЛЬШОЙ ВЗРЫВ! Получено +${earned} ⭐ Звездной Пыли!`, "success");
+            this.buildUpgradesList();
+            this.render();
+          }
+        }
+      });
+    }
+
     // Logbook Modal
     if (this.logbookBtn) {
       this.logbookBtn.addEventListener("click", () => {
@@ -124,31 +185,10 @@ export class UIManager {
       });
     }
 
-    // Story Popup close
-    if (this.closeStoryPopupBtn) {
-      this.closeStoryPopupBtn.addEventListener("click", () => {
-        this.storyPopup.classList.add("hidden");
-      });
-    }
-
     // Anomaly Modal close
     if (this.closeAnomalyBtn) {
       this.closeAnomalyBtn.addEventListener("click", () => {
         this.anomalyModal.classList.add("hidden");
-      });
-    }
-
-    // Prestige button
-    if (this.prestigeBtn) {
-      this.prestigeBtn.addEventListener("click", () => {
-        if (confirm("Вы готовы совершить Вознесение Эдема? Весь текущий прогресс сбросится в обмен на постоянный бонус +25% к добыче!")) {
-          if (this.state.prestige()) {
-            this.sounds.playMilestone();
-            this.showToast("🌟 Вознесение свершилось! Множитель усилен!", "success");
-            this.buildUpgradesList();
-            this.render();
-          }
-        }
       });
     }
 
@@ -158,14 +198,12 @@ export class UIManager {
         this.mpModal.classList.remove("hidden");
       });
     }
-
     if (this.closeMpModalBtn) {
       this.closeMpModalBtn.addEventListener("click", () => {
         this.mpModal.classList.add("hidden");
       });
     }
 
-    // Copy link button
     if (this.copyShareLinkBtn) {
       this.copyShareLinkBtn.addEventListener("click", () => {
         const code = this.shareCodeDisplay.textContent;
@@ -176,7 +214,6 @@ export class UIManager {
       });
     }
 
-    // Disconnect MP
     if (this.disconnectMpBtn) {
       this.disconnectMpBtn.addEventListener("click", () => {
         this.network.disconnect();
@@ -188,7 +225,6 @@ export class UIManager {
     }
   }
 
-  // Toast notification
   showToast(message, type = "info") {
     if (!this.toastContainer) return;
     const toast = document.createElement("div");
@@ -202,7 +238,67 @@ export class UIManager {
     }, 3500);
   }
 
-  // Build upgrade cards in DOM ONCE per category switch (NEVER wipe innerHTML in loop!)
+  // Display Cinematic Evolution Modal
+  showEvolutionModal(stageDef) {
+    if (!this.evolutionModal || !stageDef) return;
+    this.evolutionIcon.textContent = stageDef.icon;
+    this.evolutionName.textContent = stageDef.name;
+    this.evolutionOrganism.textContent = `Организм: ${stageDef.organism}`;
+    this.evolutionStoryText.textContent = stageDef.storyText;
+
+    this.evolutionModal.classList.remove("hidden");
+    this.sounds.playEvolutionUnlock();
+  }
+
+  // Render Reality Engine (Prestige Talents Tree)
+  renderRealityEngine() {
+    if (!this.realityModal) return;
+    const pending = this.state.getPendingStardust();
+    this.stardustBalanceDisplay.textContent = formatNumber(this.state.stardust);
+    this.pendingStardustDisplay.textContent = `+${pending} ⭐`;
+
+    if (this.talentsContainer) {
+      this.talentsContainer.innerHTML = "";
+      CONFIG.PRESTIGE_TALENTS.forEach(talent => {
+        const currentLvl = this.state.prestigeTalents[talent.id] || 0;
+        const isMax = currentLvl >= talent.maxLevel;
+        const cost = this.state.getPrestigeTalentCost(talent.id);
+        const canAfford = !isMax && this.state.stardust >= cost;
+
+        const card = document.createElement("div");
+        card.className = `talent-card ${isMax ? "maxed" : (canAfford ? "affordable-talent" : "locked-talent")}`;
+        card.innerHTML = `
+          <div class="talent-icon">${talent.icon}</div>
+          <div class="talent-info">
+            <div class="talent-title-row">
+              <span class="talent-name">${talent.name}</span>
+              <span class="talent-level">${currentLvl} / ${talent.maxLevel}</span>
+            </div>
+            <div class="talent-desc">${talent.desc}</div>
+            <div class="talent-cost-row">
+              ${isMax ? '<span class="talent-maxed-badge">МАКС. УРОВЕНЬ</span>' : `<span class="talent-cost">${cost} ⭐ Пыли</span>`}
+            </div>
+          </div>
+        `;
+
+        if (!isMax) {
+          card.addEventListener("click", () => {
+            if (this.state.buyPrestigeTalent(talent.id)) {
+              this.sounds.playPurchase();
+              this.showToast(`Исследование "${talent.name}" усилено! ✨`, "success");
+              this.renderRealityEngine();
+              this.render();
+            } else {
+              this.showToast(`Не хватает ⭐ Звездной Пыли!`, "warning");
+            }
+          });
+        }
+
+        this.talentsContainer.appendChild(card);
+      });
+    }
+  }
+
   buildUpgradesList() {
     if (!this.upgradesContainer) return;
     this.upgradesContainer.innerHTML = "";
@@ -231,7 +327,6 @@ export class UIManager {
         </div>
       `;
 
-      // Single permanent click handler with shake feedback
       card.addEventListener("click", (e) => {
         e.stopPropagation();
         const cost = this.state.getUpgradeCost(u.id);
@@ -241,7 +336,7 @@ export class UIManager {
           void card.offsetWidth;
           card.classList.add("shake");
           this.sounds.playWaterDrop();
-          this.showToast(`Не хватает ${formatNumber(cost - this.state.energy)} 💧 для покупки "${u.name}"!`, "warning");
+          this.showToast(`Не хватает ${formatNumber(cost - this.state.energy)} 💧 для "${u.name}"!`, "warning");
           return;
         }
 
@@ -269,7 +364,6 @@ export class UIManager {
     this.updateUpgradesDisplay();
   }
 
-  // Update upgrade cards without touching DOM structure
   updateUpgradesDisplay() {
     this.upgradeCardElements.forEach(({ cardEl, levelEl, costEl, def }) => {
       const level = this.state.upgrades[def.id] || 0;
@@ -335,7 +429,6 @@ export class UIManager {
     });
   }
 
-  // Planetary Anomaly Modal with choices
   showAnomalyModal(anomalyDef) {
     if (!this.anomalyModal || !anomalyDef) return;
     this.anomalyIcon.textContent = anomalyDef.icon;
@@ -361,23 +454,12 @@ export class UIManager {
     this.sounds.playWarning();
   }
 
-  // Story Popup for unlocked stage
-  showStoryPopup(stage) {
-    if (!this.storyPopup || !stage) return;
-    this.storyPopupTitle.textContent = stage.logTitle || stage.name;
-    this.storyPopupDate.textContent = stage.logDate || "ЗАПИСЬ ЭКСПЕДИЦИИ";
-    this.storyPopupText.textContent = stage.logText || stage.description;
-    this.storyPopup.classList.remove("hidden");
-    this.sounds.playMilestone();
-  }
-
-  // Render Logbook entries
   renderLogbook() {
     if (!this.logbookEntriesContainer) return;
     this.logbookEntriesContainer.innerHTML = "";
 
-    CONFIG.STAGES.forEach((stage, idx) => {
-      const isUnlocked = this.state.unlockedLogs.includes(idx);
+    CONFIG.EVOLUTION_STAGES.forEach((stage, idx) => {
+      const isUnlocked = this.state.unlockedEvolutionStages.includes(stage.id);
       const entry = document.createElement("div");
       entry.className = `logbook-entry ${isUnlocked ? "unlocked" : "locked-entry"}`;
 
@@ -385,18 +467,18 @@ export class UIManager {
         entry.innerHTML = `
           <div class="entry-header">
             <span class="entry-icon">${stage.icon}</span>
-            <span class="entry-title">${stage.logTitle || stage.name}</span>
-            <span class="entry-date">${stage.logDate || ""}</span>
+            <span class="entry-title">${stage.name}</span>
+            <span class="entry-date">${stage.organism}</span>
           </div>
-          <div class="entry-body">${stage.logText || stage.description}</div>
+          <div class="entry-body">${stage.storyText}</div>
         `;
       } else {
         entry.innerHTML = `
           <div class="entry-header">
             <span class="entry-icon">🔒</span>
-            <span class="entry-title">Запись зашифрована [Порог: ${formatNumber(stage.threshold)} 💧]</span>
+            <span class="entry-title">Эпоха еще не открыта [Порог: ${formatNumber(stage.threshold)} 💧]</span>
           </div>
-          <div class="entry-body locked-text">Сенсорные данные заблокированы до достижения следующей фазы биосферы.</div>
+          <div class="entry-body locked-text">Генетический код заблокирован. Развивайте биосферу.</div>
         `;
       }
 
@@ -404,7 +486,6 @@ export class UIManager {
     });
   }
 
-  // Update active buffs visual banner
   updateActiveBuffs() {
     if (!this.activeBuffsContainer) return;
     let buffs = [];
@@ -436,22 +517,39 @@ export class UIManager {
     }
   }
 
-  // Update stats counters
   updateStatsDisplay() {
     this.energyDisplay.textContent = formatNumber(this.state.energy);
     this.passiveDisplay.textContent = `+${formatNumber(this.state.passivePerSec)} /сек`;
     this.clickDisplay.textContent = `+${formatNumber(this.state.clickPower)} /клик`;
 
-    const currentStage = CONFIG.STAGES[this.state.currentStageIndex];
-    if (this.stageName) this.stageName.textContent = `${currentStage.icon} ${currentStage.name}`;
-    if (this.stageDesc) this.stageDesc.textContent = currentStage.description;
+    // Evolution stage in header
+    const currentEvo = CONFIG.EVOLUTION_STAGES[this.state.currentEvolutionIndex];
+    if (this.stageName) this.stageName.textContent = `${currentEvo.icon} ${currentEvo.name}`;
+    if (this.stageDesc) this.stageDesc.textContent = currentEvo.description;
 
     const percent = Math.floor(this.state.habitability * 100);
     if (this.habitabilityBar) this.habitabilityBar.style.width = `${percent}%`;
     if (this.habitabilityPercent) this.habitabilityPercent.textContent = `${percent}%`;
 
+    // Stardust display in header
+    if (this.stardustHeaderDisplay) {
+      if (this.state.stardust > 0 || this.state.totalStardustEarned > 0) {
+        this.stardustHeaderDisplay.textContent = `⭐ ${formatNumber(this.state.stardust)}`;
+        this.stardustHeaderDisplay.classList.remove("hidden");
+      } else {
+        this.stardustHeaderDisplay.classList.add("hidden");
+      }
+    }
+
+    // Prestige Rebirth Button indicator
+    const pendingStardust = this.state.getPendingStardust();
     if (this.prestigeBtn) {
-      this.prestigeBtn.classList.toggle("hidden", !this.state.canPrestige());
+      if (pendingStardust > 0) {
+        this.prestigeBtn.classList.remove("hidden");
+        this.prestigeBtn.innerHTML = `<span>⭐ Перерождение (+${pendingStardust})</span>`;
+      } else {
+        this.prestigeBtn.classList.add("hidden");
+      }
     }
 
     // Multiplayer progress in PvP
@@ -463,7 +561,6 @@ export class UIManager {
     }
   }
 
-  // Periodic render
   render() {
     this.updateStatsDisplay();
     this.updateUpgradesDisplay();

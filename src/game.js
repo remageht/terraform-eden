@@ -15,20 +15,19 @@ class Game {
     this.landscape = new LandscapeRenderer(this.canvas);
     this.sounds = sounds;
     this.network = network;
-    this.ui = new UIManager(this.state, this.network, this.sounds);
+    this.ui = new UIManager(this.state, this.network, this.sounds, this.particles);
 
     this.lastTime = performance.now();
     this.tickTimer = 0;
     this.saveTimer = 0;
-    this.cometTimer = 20; // First comet spawns in 20s
-    this.anomalyTimer = 35; // First anomaly spawns in 35s
+    this.cometTimer = 20;
+    this.anomalyTimer = 35;
     this.lastLocalClickTime = 0;
 
     this.init();
   }
 
   init() {
-    // Load local save
     const { loaded, offlineGain } = this.state.load();
     if (loaded && offlineGain > 0) {
       setTimeout(() => {
@@ -36,13 +35,11 @@ class Game {
       }, 800);
     }
 
-    // Set initial habitability
     this.landscape.setHabitability(this.state.habitability);
+    this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
 
-    // Bind canvas clicks & touches
     this.canvas.addEventListener("pointerdown", (e) => this.handlePointerDown(e));
 
-    // Keyboard shortcuts (Space to click)
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" && e.target.tagName !== "INPUT") {
         e.preventDefault();
@@ -51,16 +48,10 @@ class Game {
       }
     });
 
-    // Setup network handlers
     this.setupNetworkHandlers();
-
-    // Check URL parameters for direct room joining
     this.checkUrlParams();
-
-    // Initial UI render
     this.ui.render();
 
-    // Start Main Loop
     requestAnimationFrame((t) => this.loop(t));
   }
 
@@ -81,7 +72,6 @@ class Game {
       this.ui.render();
     };
 
-    // Remote player clicked
     this.network.onRemoteClick = ({ xRatio, yRatio, gained, isCrit }) => {
       const rx = xRatio * this.canvas.width;
       const ry = yRatio * this.canvas.height;
@@ -89,14 +79,15 @@ class Game {
       if (this.network.mode === "coop") {
         this.state.energy += gained;
         this.state.totalEnergyEarned += gained;
-        const { stageChanged, newStage } = this.state.recalculateStats();
+        const { evolutionChanged, newEvolutionStage } = this.state.recalculateStats();
 
         this.particles.burst(rx, ry, isCrit ? 18 : 8, "leaf");
         this.particles.addFloater(rx, ry, `Друг: +${gained}`, "#38bdf8", isCrit);
         this.sounds.playWaterDrop();
 
-        if (stageChanged) {
-          this.ui.showStoryPopup(newStage);
+        if (evolutionChanged && newEvolutionStage) {
+          this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
+          this.ui.showEvolutionModal(newEvolutionStage);
         }
 
         const now = Date.now();
@@ -120,7 +111,6 @@ class Game {
       this.ui.render();
     };
 
-    // Cataclysm received in PvP
     this.network.onCataclysmReceived = (type) => {
       this.sounds.playWarning();
       if (type === "sandstorm") {
@@ -147,7 +137,6 @@ class Game {
       this.ui.render();
     };
 
-    // Modal UI buttons
     this.ui.createCoopBtn.addEventListener("click", () => this.handleCreateRoom("coop"));
     this.ui.createPvpBtn.addEventListener("click", () => this.handleCreateRoom("pvp"));
     this.ui.joinRoomBtn.addEventListener("click", () => {
@@ -188,13 +177,11 @@ class Game {
     }
   }
 
-  // Pointer/Mouse Click on Game Canvas
   handlePointerDown(e) {
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // 1. Check if clicking Lucky Comet!
     if (this.particles.catchCometAt(x, y)) {
       const bonus = this.state.claimCometBonus();
       this.sounds.playMilestone();
@@ -204,18 +191,14 @@ class Game {
       return;
     }
 
-    // 2. Check if clicking Planetary Anomaly!
     if (this.particles.exploreAnomalyAt(x, y)) {
-      // Handled in callback
       return;
     }
 
-    // 3. Check if defending PvP meteor
     if (this.particles.defendMeteorAt(x, y)) {
       return;
     }
 
-    // 4. Biome detection (Contextual click!)
     let zone = "earth";
     if (y < this.canvas.height * 0.42) {
       zone = "sky";
@@ -227,7 +210,6 @@ class Game {
     this.handleClick(x, y, zone);
   }
 
-  // Execute click logic
   handleClick(x, y, zone = "earth") {
     this.lastLocalClickTime = Date.now();
     this.sounds.startAmbientWind();
@@ -240,8 +222,6 @@ class Game {
       this.sounds.playWaterDrop();
     } else {
       const isBuffed = this.state.effects.sunburstTimer > 0;
-      
-      // Determine particle theme by zone
       let theme = "spark";
       let prefix = "";
       if (zone === "sky") {
@@ -258,7 +238,7 @@ class Game {
       if (result.isCrit) theme = "crit";
 
       this.particles.burst(x, y, result.isCrit ? 22 : 10, theme);
-      
+
       let floaterText = `${prefix}+${result.gained}`;
       if (result.isCrit) floaterText = `КРИТ! +${result.gained}`;
       else if (result.biomeMultiplier > 1.0) floaterText = `${prefix}+${result.gained} (x${result.biomeMultiplier})`;
@@ -278,8 +258,10 @@ class Game {
       }
     }
 
-    if (result.stageChanged) {
-      this.ui.showStoryPopup(result.newStage);
+    // Evolution era milestone unlock
+    if (result.evolutionChanged && result.newEvolutionStage) {
+      this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
+      this.ui.showEvolutionModal(result.newEvolutionStage);
     }
 
     const newAchs = this.state.checkAchievements();
@@ -300,28 +282,27 @@ class Game {
     this.ui.render();
   }
 
-  // Main Loop
   loop(currentTime) {
     const dt = Math.min(0.1, (currentTime - this.lastTime) / 1000);
     this.lastTime = currentTime;
 
-    // Simulation updates
     this.tickTimer += dt;
     if (this.tickTimer >= CONFIG.TICK_RATE_MS / 1000) {
-      const { stageChanged, newStage, autoclickGained } = this.state.tick(this.tickTimer);
+      const { evolutionChanged, newEvolutionStage, autoclickGained } = this.state.tick(this.tickTimer);
       
       if (autoclickGained > 0) {
         this.particles.burst(this.canvas.width * 0.5, this.canvas.height * 0.75, 4, "leaf");
       }
 
-      if (stageChanged) {
-        this.ui.showStoryPopup(newStage);
+      if (evolutionChanged && newEvolutionStage) {
+        this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
+        this.ui.showEvolutionModal(newEvolutionStage);
       }
+
       this.tickTimer = 0;
       this.ui.render();
     }
 
-    // Lucky Comet spawn timer
     this.cometTimer -= dt;
     if (this.cometTimer <= 0) {
       this.particles.spawnLuckyComet();
@@ -329,7 +310,6 @@ class Game {
       this.cometTimer = CONFIG.COMET_INTERVAL_SEC + (Math.random() - 0.5) * 10;
     }
 
-    // Planetary Anomaly spawn timer
     this.anomalyTimer -= dt;
     if (this.anomalyTimer <= 0) {
       const randomDef = CONFIG.ANOMALIES[Math.floor(Math.random() * CONFIG.ANOMALIES.length)];
@@ -341,7 +321,6 @@ class Game {
       this.anomalyTimer = CONFIG.ANOMALY_INTERVAL_SEC + (Math.random() - 0.5) * 15;
     }
 
-    // Autosave & Network sync interval
     this.saveTimer += dt;
     if (this.saveTimer >= 3.0) {
       this.state.save();
@@ -351,18 +330,16 @@ class Game {
       this.saveTimer = 0;
     }
 
-    // Update landscape state
     this.landscape.setHabitability(this.state.habitability);
+    this.landscape.setEvolutionStage(this.state.currentEvolutionIndex);
     this.landscape.setWeather(
       this.state.effects.sandstormTimer > 0 ? 1 : 0,
       this.state.upgrades.spring_streams > 0 ? 0.3 : 0
     );
 
-    // Update animation layers
     this.landscape.update(dt * 60);
     this.particles.update(dt * 60);
 
-    // Draw scene
     this.landscape.draw();
     this.particles.draw(this.landscape.ctx);
 
@@ -370,7 +347,6 @@ class Game {
   }
 }
 
-// Start game once DOM is loaded
 window.addEventListener("DOMContentLoaded", () => {
   window.game = new Game();
 });

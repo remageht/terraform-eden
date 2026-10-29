@@ -7,6 +7,17 @@ export class ParticleSystem {
     this.comets = [];
     this.ripples = [];
     this.anomalies = [];
+    this.supernovaAlpha = 0;
+  }
+
+  // Trigger cosmic rebirth / Big Crunch flash
+  triggerSupernova() {
+    this.supernovaAlpha = 1.0;
+    const cx = window.innerWidth * 0.5;
+    const cy = window.innerHeight * 0.5;
+    this.burst(cx, cy, 100, "gold");
+    this.burst(cx, cy, 60, "sun");
+    this.burst(cx, cy, 40, "anomaly");
   }
 
   // Floating text like "+1", "CRIT! +50", "COMBO x3"
@@ -172,6 +183,10 @@ export class ParticleSystem {
   }
 
   update(dt = 1) {
+    if (this.supernovaAlpha > 0) {
+      this.supernovaAlpha = Math.max(0, this.supernovaAlpha - 0.02 * dt);
+    }
+
     // Update particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -413,6 +428,15 @@ export class ParticleSystem {
       ctx.shadowBlur = 6;
       ctx.textAlign = "center";
       ctx.fillText(f.text, f.x, f.y);
+      ctx.restore();
+    }
+
+    // Draw Supernova screen flash
+    if (this.supernovaAlpha > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1.0, this.supernovaAlpha);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.restore();
     }
   }

@@ -176,6 +176,7 @@ export class LandscapeRenderer {
     this.drawForegroundHills(ctx);
     this.drawFlora(ctx);
     this.drawFauna(ctx);
+    this.drawEvolutionEntities(ctx);
     this.drawWeatherEffects(ctx);
   }
 
@@ -602,6 +603,219 @@ export class LandscapeRenderer {
         ctx.lineTo(rx - 4, ry + 16);
       }
       ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  setEvolutionStage(index) {
+    this.evolutionStageIndex = index;
+  }
+
+  // Draw organisms, creatures, fire, and monuments from the Evolution Eras
+  drawEvolutionEntities(ctx) {
+    const stage = this.evolutionStageIndex || 0;
+    const t = this.time;
+
+    // 1. Primordial DNA Helix particles (Stage >= 0)
+    if (stage >= 0 && stage < 3) {
+      ctx.save();
+      const helixX = this.width * 0.25;
+      const helixY = this.height * 0.77;
+      for (let i = 0; i < 16; i++) {
+        const yOffset = (i - 8) * 5;
+        const wave1 = Math.sin(t * 2 + i * 0.4) * 14;
+        const wave2 = -wave1;
+
+        ctx.fillStyle = "rgba(56, 189, 248, 0.75)";
+        ctx.beginPath();
+        ctx.arc(helixX + wave1, helixY + yOffset, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(168, 85, 247, 0.75)";
+        ctx.beginPath();
+        ctx.arc(helixX + wave2, helixY + yOffset, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Connecting rung
+        if (i % 2 === 0) {
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(helixX + wave1, helixY + yOffset);
+          ctx.lineTo(helixX + wave2, helixY + yOffset);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // 2. Jumping Ancient Fish in the water (Stage >= 3)
+    if (stage >= 3) {
+      ctx.save();
+      const fishJumpCycle = (t * 0.8) % (Math.PI * 2);
+      if (fishJumpCycle < Math.PI) {
+        const fishX = this.width * 0.45 + Math.cos(t * 0.2) * (this.width * 0.15);
+        const arcY = Math.sin(fishJumpCycle) * 28;
+        const fishY = this.height * 0.75 - arcY;
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        ctx.ellipse(fishX, fishY, 8, 3.5, -Math.cos(fishJumpCycle) * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(fishX - 7, fishY);
+        ctx.lineTo(fishX - 12, fishY - 3);
+        ctx.lineTo(fishX - 12, fishY + 3);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 3. Ancient Amphibian (Tetrapod) on the riverbank rock (Stage >= 4)
+    if (stage >= 4) {
+      ctx.save();
+      const tetraX = this.width * 0.72;
+      const tetraY = this.height * 0.75;
+      // Body
+      ctx.fillStyle = "#15803d";
+      ctx.beginPath();
+      ctx.ellipse(tetraX, tetraY, 9, 4.5, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Head
+      ctx.fillStyle = "#22c55e";
+      ctx.beginPath();
+      ctx.arc(tetraX + 8, tetraY - 1, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 4. Grazing Dinosaur (Brachiosaurus) on distant hills (Stage >= 5)
+    if (stage >= 5) {
+      ctx.save();
+      const dinoX = this.width * 0.18 + Math.sin(t * 0.08) * 20;
+      const dinoY = this.height * 0.69;
+      ctx.fillStyle = "#334155";
+
+      // Body
+      ctx.beginPath();
+      ctx.ellipse(dinoX, dinoY, 18, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Long neck & head
+      const neckSway = Math.sin(t * 0.5) * 3;
+      ctx.beginPath();
+      ctx.moveTo(dinoX + 12, dinoY - 2);
+      ctx.quadraticCurveTo(dinoX + 22 + neckSway, dinoY - 25, dinoX + 24 + neckSway, dinoY - 36);
+      ctx.lineTo(dinoX + 28 + neckSway, dinoY - 36);
+      ctx.quadraticCurveTo(dinoX + 26 + neckSway, dinoY - 20, dinoX + 15, dinoY + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Head
+      ctx.beginPath();
+      ctx.arc(dinoX + 27 + neckSway, dinoY - 37, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(dinoX - 14, dinoY - 3);
+      ctx.quadraticCurveTo(dinoX - 28, dinoY + 2, dinoX - 35, dinoY + 8);
+      ctx.lineTo(dinoX - 12, dinoY + 5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Legs
+      ctx.fillRect(dinoX - 10, dinoY + 6, 4, 10);
+      ctx.fillRect(dinoX + 6, dinoY + 6, 4, 10);
+      ctx.restore();
+    }
+
+    // 5. Primitive Human Campfire with smoke & tent (Stage >= 6)
+    if (stage >= 6) {
+      ctx.save();
+      const campX = this.width * 0.62;
+      const campY = this.height * 0.81;
+
+      // Small tent
+      ctx.fillStyle = "#78350f";
+      ctx.beginPath();
+      ctx.moveTo(campX - 20, campY);
+      ctx.lineTo(campX - 8, campY - 16);
+      ctx.lineTo(campX + 4, campY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Campfire glow
+      const fireFlicker = Math.sin(t * 8) * 3;
+      const fireGrad = ctx.createRadialGradient(campX + 14, campY - 2, 2, campX + 14, campY - 2, 18);
+      fireGrad.addColorStop(0, "rgba(251, 146, 60, 0.9)");
+      fireGrad.addColorStop(0.5, "rgba(239, 68, 68, 0.4)");
+      fireGrad.addColorStop(1, "rgba(239, 68, 68, 0)");
+      ctx.fillStyle = fireGrad;
+      ctx.beginPath();
+      ctx.arc(campX + 14, campY - 2, 18 + fireFlicker, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Flame core
+      ctx.fillStyle = "#fef08a";
+      ctx.beginPath();
+      ctx.arc(campX + 14, campY - 3, 3 + fireFlicker * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Campfire smoke drifting up
+      ctx.fillStyle = "rgba(203, 213, 225, 0.25)";
+      for (let s = 1; s <= 4; s++) {
+        const sy = campY - 8 - s * 9;
+        const sx = campX + 14 + Math.sin(t * 1.5 + s) * 6;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3 + s * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 6. Cybernetic Singularity Spire / Monolith (Stage >= 7)
+    if (stage >= 7) {
+      ctx.save();
+      const spireX = this.width * 0.52;
+      const spireY = this.height * 0.54;
+
+      // Tall futuristic crystal spire
+      ctx.fillStyle = "#0f172a";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.8)";
+      ctx.lineWidth = 1.5;
+
+      ctx.beginPath();
+      ctx.moveTo(spireX - 8, spireY + 90);
+      ctx.lineTo(spireX - 4, spireY - 40);
+      ctx.lineTo(spireX, spireY - 65);
+      ctx.lineTo(spireX + 4, spireY - 40);
+      ctx.lineTo(spireX + 8, spireY + 90);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Glowing beacon orb at tip
+      const beaconGlow = Math.sin(t * 3) * 0.3 + 0.7;
+      ctx.fillStyle = `rgba(56, 189, 248, ${beaconGlow})`;
+      ctx.shadowColor = "#38bdf8";
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(spireX, spireY - 65, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pulsing energy ring expanding upwards
+      const ringY = spireY - 65 - ((t * 40) % 80);
+      const ringAlpha = Math.max(0, 1 - ((spireY - 65 - ringY) / 80));
+      ctx.strokeStyle = `rgba(168, 85, 247, ${ringAlpha})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(spireX, ringY, 16, 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.restore();
     }
   }

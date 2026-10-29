@@ -1,6 +1,6 @@
 import { CONFIG } from "./config.js";
 
-// Manages all game variables, math, upgrades and persistence
+// Manages all game variables, math, upgrades, evolution, prestige, and persistence
 export class GameState {
   constructor() {
     this.reset();
@@ -11,7 +11,14 @@ export class GameState {
     this.totalEnergyEarned = 0;
     this.clicks = 0;
     this.prestigeCount = 0;
-    this.stardustMultiplier = 1.0;
+
+    // Prestige / Reality Engine meta-progression (NEVER wiped by prestige!)
+    this.stardust = 0;
+    this.totalStardustEarned = 0;
+    this.prestigeTalents = {};
+    for (const t of CONFIG.PRESTIGE_TALENTS) {
+      this.prestigeTalents[t.id] = 0;
+    }
 
     // Upgrades level map
     this.upgrades = {};
@@ -19,9 +26,11 @@ export class GameState {
       this.upgrades[u.id] = 0;
     }
 
-    // Unlocked achievements & story log indices
+    // Unlocked achievements, logs, and evolution milestones
     this.achievements = {};
     this.unlockedLogs = [0];
+    this.unlockedEvolutionStages = ["primordial_soup"];
+    this.currentEvolutionIndex = 0;
 
     // Dynamic stats
     this.clickPower = 1;
@@ -47,9 +56,9 @@ export class GameState {
     // Autoclicker accumulator
     this.autoclickAccumulator = 0;
 
-    // Current stage
-    this.currentStageIndex = 0;
+    // Target for habitability
     this.habitability = 0.0;
+    this.currentStageIndex = 0;
 
     this.recalculateStats();
   }
@@ -61,6 +70,21 @@ export class GameState {
     return Math.floor(def.baseCost * Math.pow(def.costMult, level));
   }
 
+  // Cost for Prestige Reality Engine talents
+  getPrestigeTalentCost(talentId) {
+    const def = CONFIG.PRESTIGE_TALENTS.find(t => t.id === talentId);
+    if (!def) return Infinity;
+    const level = this.prestigeTalents[talentId] || 0;
+    if (level >= def.maxLevel) return Infinity;
+    return Math.floor(def.baseCost * Math.pow(def.costMult, level));
+  }
+
+  // Calculate pending Stardust for next Rebirth
+  getPendingStardust() {
+    if (this.totalEnergyEarned < 50000) return 0;
+    return Math.floor(Math.sqrt(this.totalEnergyEarned / 50000));
+  }
+
   recalculateStats() {
     let baseClick = 1;
     let basePassive = 0;
@@ -68,6 +92,7 @@ export class GameState {
     let clickSynergy = 0.0;
     let multiplierBonus = 0.0;
 
+    // Standard upgrades
     for (const def of CONFIG.UPGRADES) {
       const level = this.upgrades[def.id] || 0;
       if (level === 0) continue;
@@ -85,8 +110,15 @@ export class GameState {
       }
     }
 
-    this.globalMultiplier = (1.0 + multiplierBonus) * this.stardustMultiplier;
-    
+    // Prestige Reality Engine talents multipliers
+    const sparkTalentLvl = this.prestigeTalents["cosmic_spark"] || 0;
+    const sparkMult = CONFIG.PRESTIGE_TALENTS.find(t => t.id === "cosmic_spark").effect(sparkTalentLvl);
+
+    const mindTalentLvl = this.prestigeTalents["ascended_mind"] || 0;
+    const mindCritBonus = CONFIG.PRESTIGE_TALENTS.find(t => t.id === "ascended_mind").effect(mindTalentLvl);
+
+    this.globalMultiplier = (1.0 + multiplierBonus) * sparkMult;
+
     // Effective passive income
     let effectivePassive = basePassive * this.globalMultiplier;
     if (this.effects.anomalyPassiveTimer > 0) {
@@ -104,35 +136,39 @@ export class GameState {
     }
 
     this.clickPower = Math.max(1, Math.round(effectiveClick));
-    this.critChance = Math.min(0.75, critChance);
+    this.critChance = Math.min(0.85, critChance + mindCritBonus);
+    this.critMultiplier = mindTalentLvl > 0 ? 10 : 5;
 
-    // Compute habitability (0.0 to 1.0)
-    this.habitability = Math.min(1.0, this.totalEnergyEarned / CONFIG.TARGET_TERRAFORM_ENERGY);
+    // Habitability (0.0 to 1.0)
+    const targetEnergy = CONFIG.EVOLUTION_STAGES[CONFIG.EVOLUTION_STAGES.length - 1].threshold;
+    this.habitability = Math.min(1.0, this.totalEnergyEarned / targetEnergy);
 
-    // Stage progression
-    let stageIdx = 0;
-    for (let i = 0; i < CONFIG.STAGES.length; i++) {
-      if (this.totalEnergyEarned >= CONFIG.STAGES[i].threshold) {
-        stageIdx = i;
+    // Compute current evolution stage (from Primordial Soup to Singularity)
+    let evoIdx = 0;
+    for (let i = 0; i < CONFIG.EVOLUTION_STAGES.length; i++) {
+      if (this.totalEnergyEarned >= CONFIG.EVOLUTION_STAGES[i].threshold) {
+        evoIdx = i;
       }
     }
 
-    const stageChanged = stageIdx !== this.currentStageIndex;
-    if (stageChanged) {
-      this.currentStageIndex = stageIdx;
-      if (!this.unlockedLogs.includes(stageIdx)) {
-        this.unlockedLogs.push(stageIdx);
+    let evolutionChanged = false;
+    let newEvolutionStage = null;
+    if (evoIdx !== this.currentEvolutionIndex) {
+      this.currentEvolutionIndex = evoIdx;
+      evolutionChanged = true;
+      newEvolutionStage = CONFIG.EVOLUTION_STAGES[evoIdx];
+      if (!this.unlockedEvolutionStages.includes(newEvolutionStage.id)) {
+        this.unlockedEvolutionStages.push(newEvolutionStage.id);
       }
     }
 
-    return { stageChanged, newStage: CONFIG.STAGES[stageIdx] };
+    return { evolutionChanged, newEvolutionStage };
   }
 
-  // Perform click with contextual Biome multiplier!
+  // Perform click with Biome multiplier
   click(zone = "default") {
     this.clicks++;
 
-    // Drought clear check
     if (this.effects.droughtClicksNeeded > 0) {
       this.effects.droughtClicksNeeded--;
       return {
@@ -143,7 +179,6 @@ export class GameState {
       };
     }
 
-    // Biome multipliers based on Mutation upgrades
     let biomeMultiplier = 1.0;
     if (zone === "sky" && this.upgrades.mut_chloroplast) {
       biomeMultiplier += this.upgrades.mut_chloroplast * 1.0;
@@ -151,37 +186,28 @@ export class GameState {
       biomeMultiplier += this.upgrades.mut_aquifer * 2.0;
     }
 
-    // Roll for critical strike
     const isCrit = Math.random() < this.critChance;
     let gained = this.clickPower * (isCrit ? this.critMultiplier : 1.0) * biomeMultiplier;
 
-    // Co-op sync boost
-    if (this.effects.syncComboTimer > 0) {
-      gained *= this.effects.syncComboMult;
-    }
-
-    // Sandstorm debuff
-    if (this.effects.sandstormTimer > 0) {
-      gained *= 0.5;
-    }
+    if (this.effects.syncComboTimer > 0) gained *= this.effects.syncComboMult;
+    if (this.effects.sandstormTimer > 0) gained *= 0.5;
 
     gained = Math.max(1, Math.round(gained));
     this.energy += gained;
     this.totalEnergyEarned += gained;
 
-    const { stageChanged, newStage } = this.recalculateStats();
+    const { evolutionChanged, newEvolutionStage } = this.recalculateStats();
 
     return {
       gained,
       isCrit,
       zone,
       biomeMultiplier,
-      stageChanged,
-      newStage
+      evolutionChanged,
+      newEvolutionStage
     };
   }
 
-  // Purchase an upgrade
   buyUpgrade(upgradeId) {
     const cost = this.getUpgradeCost(upgradeId);
     if (this.energy < cost) return false;
@@ -192,9 +218,19 @@ export class GameState {
     return true;
   }
 
-  // Periodic tick (called every dt seconds)
+  // Buy Talent in the Reality Engine using Stardust
+  buyPrestigeTalent(talentId) {
+    const cost = this.getPrestigeTalentCost(talentId);
+    if (this.stardust < cost) return false;
+
+    this.stardust -= cost;
+    this.prestigeTalents[talentId] = (this.prestigeTalents[talentId] || 0) + 1;
+    this.recalculateStats();
+    this.save();
+    return true;
+  }
+
   tick(dt) {
-    // Process status effects
     if (this.effects.sandstormTimer > 0) {
       this.effects.sandstormTimer = Math.max(0, this.effects.sandstormTimer - dt);
     }
@@ -227,9 +263,7 @@ export class GameState {
       }
     }
 
-    // Passive energy income
     let passiveGain = this.passivePerSec * dt;
-
     if (this.effects.droughtClicksNeeded > 0) passiveGain = 0;
     if (this.effects.sandstormTimer > 0) passiveGain *= 0.3;
     if (this.effects.syncComboTimer > 0) passiveGain *= this.effects.syncComboMult;
@@ -237,11 +271,10 @@ export class GameState {
     this.energy += passiveGain;
     this.totalEnergyEarned += passiveGain;
 
-    const { stageChanged, newStage } = this.recalculateStats();
-    return { passiveGain, autoclickGained, stageChanged, newStage };
+    const { evolutionChanged, newEvolutionStage } = this.recalculateStats();
+    return { passiveGain, autoclickGained, evolutionChanged, newEvolutionStage };
   }
 
-  // Handle choice from an explored Anomaly
   applyAnomalyChoice(choice) {
     this.achievements["anomaly_explored"] = true;
     let toastMsg = "";
@@ -281,12 +314,12 @@ export class GameState {
     return toastMsg;
   }
 
-  // Lucky Comet bonuses
   claimCometBonus() {
     this.achievements["comet_caught"] = true;
     const rolls = ["biomass", "sunburst", "cosmic_gift"];
     const bonusType = rolls[Math.floor(Math.random() * rolls.length)];
-    const boostMult = this.upgrades.mut_magnetosphere ? 2.0 : 1.0;
+    const harvesterLvl = this.prestigeTalents["comet_harvester"] || 0;
+    const boostMult = (this.upgrades.mut_magnetosphere ? 2.0 : 1.0) * (harvesterLvl > 0 ? 3.0 : 1.0);
 
     let result = { type: bonusType, text: "" };
 
@@ -296,9 +329,9 @@ export class GameState {
       this.totalEnergyEarned += bonusEnergy;
       result.text = `🌿 ВСПЛЕСК БИОМАССЫ! +${bonusEnergy} 💧!`;
     } else if (bonusType === "sunburst") {
-      this.effects.sunburstTimer = 15.0 * boostMult;
+      this.effects.sunburstTimer = 15.0 * (boostMult > 1 ? 1.5 : 1.0);
       this.recalculateStats();
-      result.text = `⚡ СОЛНЕЧНАЯ ВСПЫШКА! Клик x5 на ${15 * boostMult}с!`;
+      result.text = `⚡ СОЛНЕЧНАЯ ВСПЫШКА! Клик x5 на 20с!`;
     } else if (bonusType === "cosmic_gift") {
       const gift = Math.max(500, Math.round(this.energy * 0.25 * boostMult));
       this.energy += gift;
@@ -310,7 +343,6 @@ export class GameState {
     return result;
   }
 
-  // Apply PvP attacks
   applyCataclysm(type) {
     if (type === "sandstorm") {
       this.effects.sandstormTimer = 8.0;
@@ -329,16 +361,21 @@ export class GameState {
     this.effects.syncComboMult = multiplier;
   }
 
+  // Big Crunch / Cosmic Supernova Prestige!
   canPrestige() {
-    return this.totalEnergyEarned >= CONFIG.TARGET_TERRAFORM_ENERGY;
+    return this.getPendingStardust() > 0;
   }
 
   prestige() {
-    if (!this.canPrestige()) return false;
-    this.prestigeCount++;
-    this.stardustMultiplier += 0.25;
+    const earnedStardust = this.getPendingStardust();
+    if (earnedStardust <= 0) return false;
 
-    this.energy = 0;
+    this.prestigeCount++;
+    this.stardust += earnedStardust;
+    this.totalStardustEarned += earnedStardust;
+    this.achievements["first_prestige"] = true;
+
+    // Reset current run
     this.totalEnergyEarned = 0;
     for (const u of CONFIG.UPGRADES) {
       this.upgrades[u.id] = 0;
@@ -355,9 +392,17 @@ export class GameState {
       anomalyClickTimer: 0,
       anomalyClickMult: 1.0
     };
+
+    // Primordial Cache starting energy talent
+    const cacheLvl = this.prestigeTalents["primordial_cache"] || 0;
+    const startEnergy = CONFIG.PRESTIGE_TALENTS.find(t => t.id === "primordial_cache").effect(cacheLvl);
+    this.energy = startEnergy;
+    this.totalEnergyEarned = startEnergy;
+
+    this.currentEvolutionIndex = 0;
     this.recalculateStats();
     this.save();
-    return true;
+    return earnedStardust;
   }
 
   checkAchievements() {
@@ -369,10 +414,10 @@ export class GameState {
       if (ach.id === "first_click" && this.clicks >= 1) unlocked = true;
       if (ach.id === "comet_caught" && this.achievements["comet_caught"]) unlocked = true;
       if (ach.id === "anomaly_explored" && this.achievements["anomaly_explored"]) unlocked = true;
-      if (ach.id === "clicks_100" && this.clicks >= 100) unlocked = true;
-      if (ach.id === "energy_1k" && this.totalEnergyEarned >= 1000) unlocked = true;
-      if (ach.id === "energy_50k" && this.totalEnergyEarned >= 50000) unlocked = true;
-      if (ach.id === "energy_1m" && this.totalEnergyEarned >= 1000000) unlocked = true;
+      if (ach.id === "first_prestige" && this.achievements["first_prestige"]) unlocked = true;
+      if (ach.id === "evolution_fish" && this.unlockedEvolutionStages.includes("primitive_fish")) unlocked = true;
+      if (ach.id === "evolution_human" && this.unlockedEvolutionStages.includes("human_dawn")) unlocked = true;
+      if (ach.id === "evolution_singularity" && this.unlockedEvolutionStages.includes("singularity_age")) unlocked = true;
 
       if (unlocked) {
         this.achievements[ach.id] = true;
@@ -389,10 +434,13 @@ export class GameState {
         totalEnergyEarned: this.totalEnergyEarned,
         clicks: this.clicks,
         prestigeCount: this.prestigeCount,
-        stardustMultiplier: this.stardustMultiplier,
+        stardust: this.stardust,
+        totalStardustEarned: this.totalStardustEarned,
+        prestigeTalents: this.prestigeTalents,
         upgrades: this.upgrades,
         achievements: this.achievements,
         unlockedLogs: this.unlockedLogs,
+        unlockedEvolutionStages: this.unlockedEvolutionStages,
         lastSaveTime: Date.now()
       };
       localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(data));
@@ -411,18 +459,26 @@ export class GameState {
       this.totalEnergyEarned = data.totalEnergyEarned || 0;
       this.clicks = data.clicks || 0;
       this.prestigeCount = data.prestigeCount || 0;
-      this.stardustMultiplier = data.stardustMultiplier || 1.0;
+      this.stardust = data.stardust || 0;
+      this.totalStardustEarned = data.totalStardustEarned || 0;
+      this.prestigeTalents = data.prestigeTalents || this.prestigeTalents;
       this.upgrades = data.upgrades || this.upgrades;
       this.achievements = data.achievements || {};
       this.unlockedLogs = data.unlockedLogs || [0];
+      this.unlockedEvolutionStages = data.unlockedEvolutionStages || ["primordial_soup"];
 
       this.recalculateStats();
 
+      // Offline gains with Temporal Rift talent check
       let offlineGain = 0;
       if (data.lastSaveTime) {
-        const offlineSeconds = Math.min(8 * 3600, Math.floor((Date.now() - data.lastSaveTime) / 1000));
+        const riftLvl = this.prestigeTalents["temporal_rift"] || 0;
+        const maxHours = riftLvl > 0 ? 24 : 8;
+        const efficiency = CONFIG.PRESTIGE_TALENTS.find(t => t.id === "temporal_rift").effect(riftLvl);
+
+        const offlineSeconds = Math.min(maxHours * 3600, Math.floor((Date.now() - data.lastSaveTime) / 1000));
         if (offlineSeconds > 5 && this.passivePerSec > 0) {
-          offlineGain = Math.round(offlineSeconds * this.passivePerSec * 0.7);
+          offlineGain = Math.round(offlineSeconds * this.passivePerSec * efficiency);
           this.energy += offlineGain;
           this.totalEnergyEarned += offlineGain;
           this.recalculateStats();

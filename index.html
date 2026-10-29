@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Terraform: Genesis of Eden — Инкрементальная игра</title>
-  <meta name="description" content="Инкрементальная игра терраформирования живого пейзажа с сюжетом экспедиции, мутациями, аномалиями и мультиплеером (Co-op и PvP).">
+  <title>Terraform: Genesis of Eden — От ДНК к Человеку и Сингулярности</title>
+  <meta name="description" content="Эволюционная инкрементальная игра: развивайте жизнь от молекулы ДНК до человека и космической сингулярности с перерождениями и мультиплеером.">
   
   <!-- Modern Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +23,7 @@
   <!-- Game UI Container -->
   <div id="game-container">
     
-    <!-- Top Bar: Title, Stats and Quick Actions -->
+    <!-- Top Bar: Logo, Stats, Habitability, and Actions -->
     <header id="top-bar">
       <div class="header-left">
         <h1 class="game-logo">
@@ -32,15 +32,18 @@
           <span class="logo-sub">Eden</span>
         </h1>
         <div class="stage-info">
-          <span id="stage-name" class="stage-badge">🌑 Безжизненная Пустошь</span>
-          <p id="stage-desc" class="stage-desc-text">Серые безмолвные скалы и холодные космические ветра.</p>
+          <div class="stage-badge-row">
+            <span id="stage-name" class="stage-badge">🧬 Первичный Бульон & ДНК</span>
+            <span id="stardust-counter" class="stardust-badge hidden">⭐ 0</span>
+          </div>
+          <p id="stage-desc" class="stage-desc-text">Химический хаос порождает первые цепочки органических полимеров.</p>
         </div>
       </div>
 
       <!-- Center Progress: Terraforming Habitability -->
       <div class="habitability-container">
         <div class="habitability-label-row">
-          <span>Пригодность к жизни</span>
+          <span>Прогресс Эволюции Мира</span>
           <span id="habitability-percent" class="habitability-val">0%</span>
         </div>
         <div class="progress-track">
@@ -48,16 +51,19 @@
         </div>
       </div>
 
-      <!-- Right Actions: Logbook, Sound, Multiplayer, Prestige -->
+      <!-- Right Actions -->
       <div class="header-right">
-        <button id="open-logbook-btn" class="btn btn-glass" title="Бортовой журнал экспедиции">
+        <button id="open-reality-engine-btn" class="btn btn-reality" title="Древо Реальности (Мета-престиж)">
+          <span>🌀 Реальность</span>
+        </button>
+        <button id="prestige-btn" class="btn btn-prestige hidden" title="Совершить Большой Взрыв и Перерождение">
+          <span>⭐ Перерождение</span>
+        </button>
+        <button id="open-logbook-btn" class="btn btn-glass" title="Хроники Эволюции">
           <span>📜 Журнал</span>
         </button>
         <button id="open-mp-modal-btn" class="btn btn-glass" title="Мультиплеер (Co-op и PvP)">
           <span>👥 Мультиплеер</span>
-        </button>
-        <button id="prestige-btn" class="btn btn-prestige hidden" title="Совершить Вознесение Эдема">
-          <span>🌟 Вознесение</span>
         </button>
         <button id="sound-toggle-btn" class="btn btn-icon-glass" title="Включить/выключить звук">
           <span>🔊 Звук</span>
@@ -82,7 +88,7 @@
             <span id="passive-rate" class="rate-badge passive">+0 /сек</span>
             <span id="click-rate" class="rate-badge click">+1 /клик</span>
           </div>
-          <div class="click-hint">Кликайте по небу, воде или холмам. Ловите кометы и аномалии! ✨</div>
+          <div class="click-hint">Кликайте по небу, озеру или холмам. Ловите кометы и аномалии! ✨</div>
         </div>
 
         <!-- Multiplayer Live HUD (Co-op / PvP) -->
@@ -138,14 +144,52 @@
 
   </div>
 
-  <!-- Story Popup Dialog (For new stage unlock) -->
-  <div id="story-popup" class="modal-backdrop hidden">
-    <div class="story-modal-card">
-      <div class="story-badge">📡 СИГНАЛ БОРТОВОГО ИИ «ЭДЕМ»</div>
-      <h3 id="story-popup-title" class="story-title">ГЛАВА 1</h3>
-      <div id="story-popup-date" class="story-date">СОЛ 001 // ТЕМПЕРАТУРА: -72°C</div>
-      <p id="story-popup-text" class="story-text">Текст записи...</p>
-      <button id="close-story-popup-btn" class="btn btn-primary story-btn">Продолжить терраформирование</button>
+  <!-- 🧬 Cinematic Evolution Era Reveal Modal (From DNA to Human) -->
+  <div id="evolution-modal" class="modal-backdrop hidden">
+    <div class="evolution-modal-card">
+      <div class="evolution-glow-fx"></div>
+      <div class="evolution-badge">✨ НОВЫЙ ЭВОЛЮЦИОННЫЙ СКАЧОК</div>
+      <div id="evolution-big-icon" class="evolution-icon-anim">🧬</div>
+      <h2 id="evolution-name" class="evolution-title">Первичный Бульон & ДНК</h2>
+      <div id="evolution-organism" class="evolution-sub">Организм: Молекула РНК</div>
+      <p id="evolution-story-text" class="evolution-text">История эпохи...</p>
+      <button id="close-evolution-btn" class="btn btn-primary evolution-btn">Принять форму и продолжить 🧬</button>
+    </div>
+  </div>
+
+  <!-- 🌀 Reality Engine / Prestige Rebirth Modal -->
+  <div id="reality-modal" class="modal-backdrop hidden">
+    <div class="modal-card reality-modal-card">
+      <div class="modal-header">
+        <div class="reality-header-left">
+          <h3 class="modal-title">🌀 Древо Реальности (Мета-Престиж)</h3>
+          <span class="reality-sub">Постоянные космические исследования между перерождениями</span>
+        </div>
+        <button id="close-reality-btn" class="modal-close">&times;</button>
+      </div>
+
+      <div class="reality-body">
+        <!-- Rebirth Big Crunch Action Bar -->
+        <div class="rebirth-banner">
+          <div class="rebirth-stats">
+            <div class="stardust-row">
+              <span>Ваша Звездная Пыль:</span>
+              <strong id="stardust-balance" class="stardust-val">0</strong>
+              <span class="stardust-sym">⭐</span>
+            </div>
+            <div class="pending-row">
+              <span>Будет получено при сжатии Вселенной:</span>
+              <strong id="pending-stardust-count" class="pending-val">+0 ⭐</strong>
+            </div>
+          </div>
+          <button id="btn-execute-rebirth" class="btn btn-supernova">💥 Запустить Большой Взрыв</button>
+        </div>
+
+        <div class="reality-divider"><span>ТАЛАНТЫ РЕАЛЬНОСТИ (СОХРАНЯЮТСЯ ВСЕГДА)</span></div>
+
+        <!-- Permanent Talents List -->
+        <div id="talents-list" class="talents-grid"></div>
+      </div>
     </div>
   </div>
 
@@ -153,7 +197,7 @@
   <div id="logbook-modal" class="modal-backdrop hidden">
     <div class="modal-card logbook-card">
       <div class="modal-header">
-        <h3 class="modal-title">📜 Бортовой Журнал Экспедиции «ЭДЕМ»</h3>
+        <h3 class="modal-title">📜 Хроники Эволюции: От ДНК до Человека</h3>
         <button id="close-logbook-btn" class="modal-close">&times;</button>
       </div>
       <div id="logbook-entries" class="logbook-scroll"></div>
@@ -190,7 +234,6 @@
           Играйте напрямую с друзьями без серверов и задержек! Выберите режим:
         </p>
 
-        <!-- Mode Selection Buttons -->
         <div class="mp-modes-selection">
           <div class="mp-mode-card">
             <h4>🌿 Кооператив (Co-op)</h4>
@@ -205,7 +248,6 @@
           </div>
         </div>
 
-        <!-- Room Share Link Area (Visible after creation) -->
         <div id="room-share-section" class="room-share-box hidden">
           <div class="share-code-row">
             <span>Код комнаты:</span>
@@ -216,7 +258,6 @@
 
         <div class="modal-divider"><span>ИЛИ</span></div>
 
-        <!-- Join with Code Form -->
         <div class="join-room-section">
           <h4>Присоединиться к другу:</h4>
           <div class="join-input-group">
